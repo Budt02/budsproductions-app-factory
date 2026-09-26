@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>QuickQuote Auto — Automotive Estimator</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root{
   --bg:#f5f7fb;--surface:#fff;--surface2:#eef2f7;--text:#172033;--muted:#667085;
@@ -116,10 +116,43 @@ let toastTimer = null;
 
 const SUPABASE_URL = "https://iprzctq4jbojjwebeous.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_GPtzVYlPVI3Q2aDOkM_tVA_RVpl5rnw";
-const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-let supabaseReady = false;
-let saveTimer = null;
 
+function createSupabaseRestClient(){
+  const SESSION_KEY="quickquote-auto-session";
+  let listeners=[];
+  const readSession=()=>{try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}};
+  const writeSession=(s)=>{try{if(s)localStorage.setItem(SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SESSION_KEY)}catch{}};
+  const headers=(token)=>({"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+(token||readSession()?.access_token||SUPABASE_ANON_KEY),"Content-Type":"application/json"});
+  async function request(path,options={}){
+    const r=await fetch(SUPABASE_URL+path,{...options,headers:{...headers(options.token),...(options.headers||{})}});
+    const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch{data=text}
+    if(!r.ok) return {data:null,error:{message:data?.msg||data?.message||text||("HTTP "+r.status),status:r.status}};
+    return {data,error:null};
+  }
+  function table(name){
+    return {
+      select(columns="*"){
+        const state={url:"/rest/v1/"+encodeURIComponent(name)+"?select="+encodeURIComponent(columns),filters:[]};
+        const api={
+          eq(k,v){state.filters.push("&"+encodeURIComponent(k)+"=eq."+encodeURIComponent(v));return api;},
+          maybeSingle(){return request(state.url+state.filters.join("")).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));},
+          upsert(row,opts={}){let url="/rest/v1/"+encodeURIComponent(name); if(opts.onConflict)url+="?on_conflict="+encodeURIComponent(opts.onConflict); return request(url,{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(row)}).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));}
+        }; return api;
+      },
+      upsert(row,opts={}){let url="/rest/v1/"+encodeURIComponent(name); if(opts.onConflict)url+="?on_conflict="+encodeURIComponent(opts.onConflict); return request(url,{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(row)}).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));}
+    };
+  }
+  const auth={
+    async getSession(){const s=readSession();return {data:{session:s},error:null};},
+    async getUser(){const s=readSession(); if(!s?.access_token)return {data:{user:null},error:null}; const r=await request("/auth/v1/user"); return {data:{user:r.data},error:r.error};},
+    async signInWithPassword({email,password}){const r=await request("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})}); if(r.error)return {data:{},error:r.error}; writeSession(r.data); listeners.forEach(fn=>fn("SIGNED_IN",r.data)); return {data:r.data,error:null};},
+    async signUp({email,password}){const r=await request("/auth/v1/signup",{method:"POST",body:JSON.stringify({email,password})); if(r.error)return {data:{},error:r.error}; if(r.data?.access_token)writeSession(r.data); return {data:r.data,error:null};},
+    async signOut(){writeSession(null);listeners.forEach(fn=>fn("SIGNED_OUT",null));return {error:null};},
+    onAuthStateChange(fn){listeners.push(fn);return {data:{subscription:{unsubscribe(){listeners=listeners.filter(x=>x!==fn)}}}}}
+  };
+  return {auth,from:table,rpc:async(name,args={})=>request("/rest/v1/rpc/"+encodeURIComponent(name),{method:"POST",body:JSON.stringify(args)})};
+}
+const supabaseClient=createSupabaseRestClient();
 function loadState(){
   try{const raw=localStorage.getItem(STORAGE_KEY);return raw?Object.assign(structuredClone(seed),JSON.parse(raw)):structuredClone(seed)}catch{return structuredClone(seed)}
 }
