@@ -1,11 +1,784 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>QuickQuote Auto</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QuickQuote Auto — Automotive Estimator</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f7fb;--surface:#fff;--surface2:#eef2f7;--text:#172033;--muted:#667085;
+  --border:#d9dee8;--primary:#2457e6;--primary-dark:#1944bd;--success:#16834b;
+  --warning:#a86700;--danger:#c93636;--radius:14px;--shadow:0 8px 28px rgba(20,32,55,.08);
+  --sidebar:240px;--focus:0 0 0 3px rgba(36,87,230,.22)
+}
+*{box-sizing:border-box}html{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);background:var(--bg)}
+body{margin:0}button,input,textarea,select{font:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:none;box-shadow:var(--focus);border-color:var(--primary)}
+.app{min-height:100vh}.shell{display:flex;min-height:100vh}
+.sidebar{width:var(--sidebar);background:#111827;color:#e5e7eb;padding:22px 14px;position:fixed;inset:0 auto 0 0;z-index:20}
+.brand{font-weight:800;font-size:20px;padding:8px 12px 24px;letter-spacing:-.3px}.brand span{color:#8fb0ff}
+.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:12px;border-radius:10px;font-weight:600}.nav button:hover,.nav button.active{background:#26334a;color:white}
+.sidebar-bottom{position:absolute;bottom:18px;left:14px;right:14px}.logout{width:100%;border:0;background:#1f2937;color:#cbd5e1;padding:11px;border-radius:10px}
+.main{margin-left:var(--sidebar);width:calc(100% - var(--sidebar));min-width:0}.topbar{height:66px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:10}
+.mobile-brand{display:none;font-weight:800}.mobile-menu{display:none}.content{padding:28px;max-width:1240px;margin:auto}
+h1{font-size:30px;line-height:1.15;margin:0 0 6px;letter-spacing:-.7px}h2{font-size:20px;margin:0 0 14px}h3{font-size:16px;margin:0 0 10px}.sub{color:var(--muted);margin:0 0 24px}.grid{display:grid;gap:18px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}.stat{padding:18px}.stat .label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.stat .value{font-size:26px;font-weight:800;margin-top:7px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.stack{display:grid;gap:12px}.actions{display:flex;flex-wrap:wrap;gap:10px}.btn{border:1px solid var(--border);background:white;color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700}.btn:hover{background:var(--surface2)}.btn.primary{background:var(--primary);border-color:var(--primary);color:white}.btn.primary:hover{background:var(--primary-dark)}.btn.danger{color:white;background:var(--danger);border-color:var(--danger)}.btn.ghost{border-color:transparent;background:transparent}.btn:disabled{opacity:.55;cursor:not-allowed}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800}.badge.draft{background:#eef1f5;color:#596273}.badge.sent{background:#eaf0ff;color:#2457e6}.badge.viewed{background:#eeeafd;color:#6246c7}.badge.approved{background:#e7f7ef;color:var(--success)}.badge.declined,.badge.expired{background:#fdecec;color:var(--danger)}
+.list{display:grid;gap:10px}.list-item{border:1px solid var(--border);border-radius:12px;padding:15px;background:white;display:flex;justify-content:space-between;gap:15px;align-items:center}.list-item.clickable{cursor:pointer}.list-item.clickable:hover{border-color:#aeb9ce}
+label{display:grid;gap:6px;font-weight:700;font-size:13px}.field{display:grid;gap:14px}input,textarea,select{width:100%;border:1px solid var(--border);background:white;border-radius:10px;padding:11px 12px;color:var(--text)}textarea{min-height:100px;resize:vertical}.help{font-size:12px;color:var(--muted);font-weight:500}.error{font-size:12px;color:var(--danger);font-weight:700}.required::after{content:" *";color:var(--danger)}
+.search{position:relative}.search input{padding-left:38px}.search:before{content:"⌕";position:absolute;left:13px;top:8px;color:var(--muted);font-size:22px;z-index:1}
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.estimate-total{font-size:34px;font-weight:900;letter-spacing:-1px}.divider{border:0;border-top:1px solid var(--border);margin:18px 0}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px 8px;border-bottom:1px solid var(--border);text-align:left}.table th{font-size:12px;text-transform:uppercase;color:var(--muted)}.right{text-align:right!important}
+.stepper{display:flex;gap:8px;margin-bottom:22px;overflow:auto}.step{padding:8px 11px;border-radius:999px;background:var(--surface2);color:var(--muted);font-weight:800;font-size:12px;white-space:nowrap}.step.active{background:#eaf0ff;color:var(--primary)}
+.empty{text-align:center;padding:44px 18px;color:var(--muted)}.empty strong{display:block;color:var(--text);font-size:17px;margin-bottom:6px}
+.toast{position:fixed;right:20px;bottom:20px;background:#111827;color:white;padding:13px 16px;border-radius:10px;box-shadow:var(--shadow);z-index:100;max-width:360px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.48);display:grid;place-items:center;padding:18px;z-index:80}.modal{background:white;border-radius:16px;max-width:520px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.public{max-width:760px;margin:30px auto;padding:0 18px}.public .card{box-shadow:0 12px 40px rgba(20,32,55,.1)}
+.auth{min-height:100vh;display:grid;place-items:center;padding:22px}.auth-card{width:min(430px,100%);background:white;border:1px solid var(--border);border-radius:18px;padding:28px;box-shadow:var(--shadow)}.auth-brand{text-align:center;font-size:25px;font-weight:900;margin-bottom:24px}.auth-brand span{color:var(--primary)}
+.logo-preview{width:72px;height:72px;border-radius:12px;border:1px dashed var(--border);display:grid;place-items:center;overflow:hidden;background:var(--surface2)}.logo-preview img{width:100%;height:100%;object-fit:cover}
+.notice{padding:12px 14px;border-radius:10px;background:#eef5ff;color:#244a9b;font-size:13px}.danger-box{padding:12px 14px;border-radius:10px;background:#fff0f0;color:#9d2929;font-size:13px}
+.mobile-bottom{display:none}
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0;width:100%}.mobile-menu{display:inline-flex}.mobile-brand{display:block}.topbar{padding:0 16px}.content{padding:20px 16px}.grid-3{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.mobile-bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);z-index:30;padding:6px;justify-content:space-around}.mobile-bottom button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:800;padding:8px}.mobile-bottom button.active{color:var(--primary)}.content{padding-bottom:88px}}
+@media(max-width:620px){h1{font-size:25px}.grid-2{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.card{padding:16px}.actions .btn{flex:1;min-width:130px}.list-item{align-items:flex-start}.estimate-total{font-size:28px}.table-wrap{overflow:auto}.topbar{height:58px}}
+@media(max-width:420px){.kpi{grid-template-columns:1fr}.actions .btn{width:100%;flex:none}}
+@media print{body{background:#fff}.sidebar,.topbar,.mobile-bottom,.actions,.btn,.toast{display:none!important}.main{margin:0;width:100%}.content{padding:0;max-width:none}.public{max-width:none;margin:0;padding:0}.card{box-shadow:none;border:0}}
+.contact-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.mini{font-size:12px;padding:7px 9px}
+</style>
 </head>
 <body>
-  <p>Loading QuickQuote Auto...</p>
+<div id="app"></div>
+<script>
+/*
+  QUICKQUOTE AUTO — SINGLE-FILE FRONT END
+  --------------------------------------
+  Component tree:
+    App
+    ├─ Auth (Login / Signup)
+    ├─ AppShell
+    │  ├─ Sidebar / MobileNav
+    │  ├─ Topbar
+    │  └─ Screen
+    │     ├─ Dashboard
+    │     ├─ Customers / CustomerDetails
+    │     ├─ EstimateList
+    │     ├─ EstimateWizard
+    │     ├─ EstimateDetails / Preview
+    │     ├─ Services
+    │     └─ Settings
+    └─ PublicEstimate
+
+  BACKEND PLUG-IN POINTS are marked "BACKEND:" below.
+  Replace localStorage functions with API/database calls when ready.
+*/
+
+const STORAGE_KEY = "quickquote-auto-v1";
+
+const seed = {
+  user: null,
+  business: {
+    name:"Your Business Name", phone:"936-555-1234", email:"you@example.com",
+    address:"", website:"", license:"", logo:"", taxRate:8.25, markup:20,
+    terms:"Payment due according to agreed terms. Estimate valid until the expiration date.", paymentLink:""
+  },
+  customers: [
+    {id:"c1",first:"John",last:"Smith",phone:"936-555-1001",email:"john@example.com",address:"123 Main Street",notes:""},
+    {id:"c2",first:"Mike",last:"Jones",phone:"936-555-1002",email:"",address:"456 Oak Street",notes:""}
+  ],
+  services: [
+    {id:"s1",name:"Brake Pad & Rotor Service",description:"Replace existing water heater.",labor:650,material:900,markup:20,taxable:true},
+    {id:"s2",name:"Oil Change Service",description:"Install faucet and test connections.",labor:175,material:50,markup:20,taxable:true},
+    {id:"s3",name:"Diagnostic Inspection",description:"Repair damaged fence section.",labor:450,material:175,markup:20,taxable:true}
+  ],
+  estimates: [
+    {id:"e1",number:"EST-1001",customerId:"c1",title:"Brake Pad & Rotor Service",address:"123 Main Street",description:"Replace existing water heater.",expiration:"2026-10-09",status:"Approved",
+      items:[{description:"Water Heater",qty:1,unit:"Job",labor:650,material:900,markup:20,taxable:true},{description:"Installation Labor",qty:1,unit:"Job",labor:0,material:0,markup:0,taxable:true,flat:650}],
+      createdAt:"2026-09-24T12:00:00",approvedAt:"2026-09-24T15:00:00"},
+    {id:"e2",number:"EST-1002",customerId:"c2",title:"Diagnostic Inspection",address:"456 Oak Street",description:"Repair damaged fence section.",expiration:"2026-10-10",status:"Sent",
+      items:[{description:"Diagnostic Inspection",qty:1,unit:"Job",labor:450,material:175,markup:20,taxable:true}],
+      createdAt:"2026-09-25T09:00:00"}
+  ],
+  settings:{prefix:"EST",startingNumber:1003,defaultExpiration:14},
+  nextNumber:1003
+};
+
+let state = loadState();
+let view = state.user ? "dashboard" : "login";
+let selectedCustomerId = null;
+let selectedEstimateId = null;
+let publicToken = new URLSearchParams(location.search).get("estimate");
+let publicLoaded = false;
+let publicData = null;
+let customerSearch = "";
+let estimateSearch = "";
+let currentWizardStep = 1;
+let draft = null;
+let toastTimer = null;
+
+const SUPABASE_URL = "https://iprzctq4jbojjwebeous.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_GPtzVYlPVI3Q2aDOkM_tVA_RVpl5rnw";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+let supabaseReady = false;
+let saveTimer = null;
+
+function loadState(){
+  try{const raw=localStorage.getItem(STORAGE_KEY);return raw?Object.assign(structuredClone(seed),JSON.parse(raw)):structuredClone(seed)}catch{return structuredClone(seed)}
+}
+
+async function saveState(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){console.warn("Local save failed",e)}
+  if(!supabaseReady) return;
+  const {data:{user}} = await supabaseClient.auth.getUser();
+  if(!user) return;
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    const payload={...state, user:{id:user.id,email:user.email}};
+    const {error}=await supabaseClient.from("app_data").upsert({user_id:user.id,data:payload,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+    if(error) console.error("Supabase save error:",error);
+  },120);
+}
+
+async function loadCloudState(user){
+  const {data,error}=await supabaseClient.from("app_data").select("data").eq("user_id",user.id).maybeSingle();
+  if(error){ console.error(error); showToast("Could not load your cloud data."); return; }
+  if(data?.data){
+    state=Object.assign(structuredClone(seed),data.data,{user:{id:user.id,email:user.email}});
+  }else{
+    state=structuredClone(seed);
+    state.user={id:user.id,email:user.email};
+    await saveState();
+  }
+}
+
+async function bootstrapSupabase(){
+  supabaseReady=true;
+
+  // Public customer estimate route: quickquote_pro_frontend.html?estimate=PUBLIC_TOKEN
+  if(publicToken){
+    view="public";
+    render();
+    await loadPublicEstimate(publicToken);
+    return;
+  }
+
+  const {data:{session}}=await supabaseClient.auth.getSession();
+  if(session?.user){
+    await loadCloudState(session.user);
+    view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
+  }else{
+    state=structuredClone(seed);
+    state.user=null;
+    view="login";
+  }
+  render();
+  supabaseClient.auth.onAuthStateChange(async(event,session)=>{
+    if(event==="SIGNED_OUT"){ state=structuredClone(seed);state.user=null;view="login";render();return; }
+    if(event==="SIGNED_IN" && session?.user){
+      await loadCloudState(session.user);
+      view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
+      render();
+    }
+  });
+}
+
+async function publishEstimate(id){
+  const e=getEstimate(id);
+  if(!e) return null;
+  if(!e.publicToken) e.publicToken=crypto.randomUUID().replaceAll("-","");
+  const payload={
+    estimate:e,
+    business:state.business,
+    customer:getCustomer(e.customerId)||null,
+    settings:state.settings
+  };
+  const {error}=await supabaseClient.from("public_estimates").upsert({
+    token:e.publicToken,
+    owner_user_id:state.user?.id || null,
+    payload,
+    status:e.status || "Sent",
+    updated_at:new Date().toISOString()
+  },{onConflict:"token"});
+  if(error){console.error(error);showToast("Could not create customer link: "+error.message);return null;}
+  return e.publicToken;
+}
+
+async function loadPublicEstimate(token){
+  const {data,error}=await supabaseClient.rpc("get_public_estimate",{p_token:token});
+  if(error || !data){
+    console.error(error);
+    publicLoaded=true;
+    publicData=null;
+    render();
+    return;
+  }
+  publicData=data;
+  publicLoaded=true;
+  render();
+}
+
+async function approvePublicEstimate(token){
+  const name=document.getElementById("publicSignName")?.value.trim();
+  const signature=document.getElementById("publicSignature")?.value.trim();
+  const terms=document.getElementById("publicTerms")?.checked;
+  if(!name || !signature || !terms){
+    showToast("Enter your name, signature, and accept the terms.");
+    return;
+  }
+  const {data,error}=await supabaseClient.rpc("approve_public_estimate",{
+    p_token:token,p_name:name,p_signature:signature
+  });
+  if(error){console.error(error);showToast(error.message);return;}
+  publicData=data;
+  closeApproval();
+  render();
+  showToast("Estimate approved.");
+}
+
+async function declinePublicEstimate(token){
+  const reason=prompt("Would you like to tell us why you're declining this estimate?")||"";
+  const {data,error}=await supabaseClient.rpc("decline_public_estimate",{
+    p_token:token,p_reason:reason
+  });
+  if(error){console.error(error);showToast(error.message);return;}
+  publicData=data;
+  render();
+  showToast("Estimate declined.");
+}
+function uid(prefix="id"){ return prefix+"_"+Math.random().toString(36).slice(2,10); }
+function money(n){ return new Intl.NumberFormat("en-US",{style:"currency",currency:"USD"}).format(Number(n)||0); }
+function esc(v=""){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function customerName(c){return [c?.first,c?.last].filter(Boolean).join(" ") || "Unnamed Customer";}
+function getCustomer(id){return state.customers.find(c=>c.id===id);}
+function getEstimate(id){return state.estimates.find(e=>e.id===id);}
+function calcItem(i){
+  if(i.flat!=null) return Number(i.flat)||0;
+  const base=(Number(i.labor)||0)+(Number(i.material)||0);
+  return base*(1+(Number(i.markup)||0)/100)*(Number(i.qty)||1);
+}
+function calcEstimate(e){
+  const subtotal=e.items.reduce((s,i)=>s+calcItem(i),0);
+  const taxable=e.items.filter(i=>i.taxable).reduce((s,i)=>s+calcItem(i),0);
+  const tax=taxable*(Number(state.business.taxRate)||0)/100;
+  return {subtotal,taxable,tax,total:subtotal+tax};
+}
+function statusClass(s){return String(s).toLowerCase();}
+function showToast(msg){clearTimeout(toastTimer);toast(msg);toastTimer=setTimeout(()=>{const x=document.querySelector(".toast");if(x)x.remove()},3200)}
+function toast(msg){document.body.insertAdjacentHTML("beforeend",`<div class="toast" role="status">${esc(msg)}</div>`)}
+function setView(v){view=v; render(); window.scrollTo({top:0,behavior:"smooth"});}
+function navButton(v,label,icon){return `<button class="${view===v?'active':''}" onclick="setView('${v}')">${icon} ${label}</button>`}
+
+function shell(content,title="QuickQuote Auto"){
+  return `<div class="shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand">Quick<span>Quote</span> Pro</div>
+      <nav class="nav">
+        ${navButton("dashboard","Home","⌂")}
+        ${navButton("estimates","Estimates","▤")}
+        ${navButton("customers","Customers","♙")}
+        ${navButton("services","Services","◆")}
+        ${navButton("settings","Settings","⚙")}
+      </nav>
+      <div class="sidebar-bottom"><button class="logout" onclick="logout()">Log out</button></div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <button class="btn ghost mobile-menu" onclick="setView('dashboard')" aria-label="Go to home">☰</button>
+        <div class="mobile-brand">Quick<span style="color:var(--primary)">Quote</span></div>
+        <div></div>
+        <button class="btn primary" onclick="startEstimate()">+ New Estimate</button>
+      </header>
+      <div class="content">${content}</div>
+      <nav class="mobile-bottom" aria-label="Mobile navigation">
+        ${navButton("dashboard","Home","⌂")}${navButton("estimates","Estimates","▤")}${navButton("customers","Customers","♙")}${navButton("services","Services","◆")}${navButton("settings","More","⋯")}
+      </nav>
+    </main>
+  </div>`;
+}
+
+function render(){
+  const root=document.getElementById("app");
+  if(view==="login"||view==="signup"){root.innerHTML=authScreen(view);return;}
+  if(view==="public"){root.innerHTML=publicEstimate(selectedEstimateId);return;}
+  let content="";
+  switch(view){
+    case "dashboard":content=dashboard();break;
+    case "customers":content=customers();break;
+    case "customer":content=customerDetails(selectedCustomerId);break;
+    case "estimates":content=estimates();break;
+    case "wizard":content=wizard();break;
+    case "estimate":content=estimateDetails(selectedEstimateId);break;
+    case "preview":content=preview(selectedEstimateId);break;
+    case "services":content=services();break;
+    case "settings":content=settings();break;
+    default:content=dashboard();
+  }
+  root.innerHTML=shell(content);
+}
+
+function authScreen(mode){
+  const signup=mode==="signup";
+  return `<main class="auth"><section class="auth-card" aria-labelledby="auth-title">
+    <div class="auth-brand">Quick<span>Quote</span> Pro</div>
+    <h1 id="auth-title" style="font-size:24px">${signup?"Create your account":"Welcome back"}</h1>
+    <p class="sub">${signup?"Create professional estimates in minutes.":"Sign in to manage your estimates."}</p>
+    <form class="stack" onsubmit="handleAuth(event,'${signup?'signup':'login'}')">
+      ${signup?`<label class="required">Email<input id="authEmail" type="email" autocomplete="email" required></label>
+      <label class="required">Password<input id="authPass" type="password" minlength="8" autocomplete="new-password" required></label>
+      <label class="required">Confirm password<input id="authConfirm" type="password" minlength="8" autocomplete="new-password" required></label>`:
+      `<label class="required">Email<input id="authEmail" type="email" autocomplete="email" required></label>
+      <label class="required">Password<input id="authPass" type="password" autocomplete="current-password" required></label>`}
+      <button class="btn primary" type="submit">${signup?"Create Account":"Log In"}</button>
+    </form>
+    <div style="margin-top:14px;text-align:center">
+      <button class="btn" type="button" onclick="testSupabaseConnection()">Test Supabase Connection</button>
+      <div id="connectionResult" class="help" style="margin-top:9px"></div>
+    </div>
+    <div style="margin-top:18px;text-align:center;font-size:13px;color:var(--muted)">
+      ${signup?`Already have an account? <button class="btn ghost" onclick="setView('login')">Log in</button>`:
+      `Don't have an account? <button class="btn ghost" onclick="setView('signup')">Create account</button>`}
+    </div>
+  </section></main>`;
+}
+async function testSupabaseConnection(){
+  const el=document.getElementById("connectionResult");
+  if(el) el.textContent="Testing Supabase connection…";
+  try{
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),10000);
+    const response=await fetch(SUPABASE_URL+"/auth/v1/settings",{
+      method:"GET",
+      headers:{apikey:SUPABASE_ANON_KEY},
+      signal:controller.signal,
+      cache:"no-store"
+    });
+    clearTimeout(timer);
+    const body=await response.text();
+    if(response.ok){
+      if(el) el.innerHTML="<strong style=\"color:var(--success)\">Connection successful.</strong> Supabase Auth is reachable (HTTP "+response.status+").";
+      showToast("Supabase connection successful.");
+    }else{
+      if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Supabase responded with HTTP "+response.status+".</strong> "+escapeHtml(body.slice(0,180));
+      showToast("Supabase responded with HTTP "+response.status+".");
+    }
+  }catch(err){
+    const detail=err?.name==="AbortError"?"Request timed out after 10 seconds.":(err?.message||String(err));
+    if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Connection failed.</strong> "+escapeHtml(detail)+"<br>Page origin: "+escapeHtml(location.origin);
+    showToast("Connection test failed: "+detail);
+  }
+}
+function escapeHtml(value){
+  return String(value).replace(/[&<>\"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",\"":"&quot;","'":"&#39;"}[ch]));
+}
+
+async function handleAuth(ev,mode){
+  ev.preventDefault();
+  const email=document.getElementById("authEmail").value.trim();
+  const pass=document.getElementById("authPass").value;
+  if(!email||!pass){showToast("Enter your email and password.");return;}
+  if(mode==="signup"){
+    const confirm=document.getElementById("authConfirm").value;
+    if(pass!==confirm){showToast("Passwords don't match.");return;}
+    if(pass.length<8){showToast("Password must be at least 8 characters.");return;}
+    const {data,error}=await supabaseClient.auth.signUp({email,password:pass});
+    if(error){showToast(error.message);return;}
+    if(data.session){
+      state=structuredClone(seed);state.user={email};await saveState();setView("setup");
+      showToast("Account created. Let's set up your business.");
+    }else{
+      setView("login");
+      showToast("Account created. Check your email to confirm your account, then log in.");
+    }
+  }else{
+    const {data,error}=await supabaseClient.auth.signInWithPassword({email,password:pass});
+    if(error){showToast(error.message);return;}
+    state.user={email};
+    await loadCloudState(data.user);
+    view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
+    render();
+    showToast("Signed in.");
+  }
+}
+async function logout(){await supabaseClient.auth.signOut();}
+
+function setup(){
+  return `<div class="card" style="max-width:760px;margin:auto">
+    <h1>Set up your business</h1><p class="sub">This information appears on your customer estimates.</p>
+    <form class="field" onsubmit="saveBusiness(event)">
+      <div class="grid grid-2">
+        <label class="required">Business name<input id="bizName" value="${esc(state.business.name)}" required></label>
+        <label class="required">Phone<input id="bizPhone" value="${esc(state.business.phone)}" required></label>
+        <label class="required">Email<input id="bizEmail" type="email" value="${esc(state.business.email)}" required></label>
+        <label>Website<input id="bizWebsite" value="${esc(state.business.website)}"></label>
+        <label>Business address<input id="bizAddress" value="${esc(state.business.address)}"></label>
+        <label>License number<input id="bizLicense" value="${esc(state.business.license)}"></label>
+        <label>Payment link (optional)<input id="bizPaymentLink" type="url" placeholder="https://..." value="${esc(state.business.paymentLink||"")}"></label>
+      </div>
+      <div class="grid grid-2">
+        <label>Default tax rate (%)<input id="bizTax" type="number" min="0" step=".01" value="${state.business.taxRate}"></label>
+        <label>Default markup (%)<input id="bizMarkup" type="number" min="0" step=".01" value="${state.business.markup}"></label>
+      </div>
+      <label>Business logo<input id="bizLogo" type="file" accept="image/png,image/jpeg,image/webp" onchange="previewLogo(event)"></label>
+      <div class="logo-preview" id="logoPreview">${state.business.logo?`<img src="${state.business.logo}" alt="Business logo">`:"Logo"}</div>
+      <button class="btn primary" type="submit">Save & Continue</button>
+    </form>
+  </div>`;
+}
+function saveBusiness(ev){
+  ev.preventDefault();
+  const b=state.business;
+  b.name=document.getElementById("bizName").value.trim();b.phone=document.getElementById("bizPhone").value.trim();
+  b.email=document.getElementById("bizEmail").value.trim();b.website=document.getElementById("bizWebsite").value.trim();
+  b.address=document.getElementById("bizAddress").value.trim();b.license=document.getElementById("bizLicense").value.trim();b.paymentLink=document.getElementById("bizPaymentLink")?.value.trim()||"";
+  b.taxRate=Number(document.getElementById("bizTax").value)||0;b.markup=Number(document.getElementById("bizMarkup").value)||0;
+  saveState();setView("dashboard");showToast("Business profile saved.");
+}
+function previewLogo(ev){
+  const f=ev.target.files[0];if(!f)return;
+  if(f.size>2*1024*1024){showToast("Logo must be smaller than 2 MB.");ev.target.value="";return;}
+  const r=new FileReader();r.onload=()=>{state.business.logo=r.result;document.getElementById("logoPreview").innerHTML=`<img src="${r.result}" alt="Business logo preview">`;};r.readAsDataURL(f);
+}
+
+function dashboard(){
+  const now=new Date();const month=now.toISOString().slice(0,7);const es=state.estimates.filter(e=>(e.createdAt||"").startsWith(month));
+  const approved=es.filter(e=>e.status==="Approved");const value=es.reduce((s,e)=>s+calcEstimate(e).total,0);const won=approved.reduce((s,e)=>s+calcEstimate(e).total,0);
+  const recent=[...state.estimates].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,5);
+  return `<div class="row"><div><h1>${now.getHours()<12?"Good morning":now.getHours()<18?"Good afternoon":"Good evening"}</h1><p class="sub">${esc(state.business.name)}</p></div><button class="btn primary" onclick="startEstimate()">+ New Estimate</button></div>
+  <div class="grid grid-3" style="margin-bottom:18px">
+    <div class="card stat"><div class="label">Estimates this month</div><div class="value">${es.length}</div></div>
+    <div class="card stat"><div class="label">Approved</div><div class="value">${approved.length}</div></div>
+    <div class="card stat"><div class="label">Estimated value</div><div class="value">${money(value)}</div></div>
+  </div>
+  <div class="card"><div class="row"><h2>Recent estimates</h2><button class="btn ghost" onclick="setView('estimates')">View all</button></div>
+  ${recent.length?`<div class="list">${recent.map(estimateRow).join("")}</div>`:`<div class="empty"><strong>No estimates yet.</strong>Create your first professional estimate in just a few minutes.<br><button class="btn primary" style="margin-top:14px" onclick="startEstimate()">+ Create First Estimate</button></div>`}</div>
+  <div class="card" style="margin-top:18px"><div class="row"><div><h2>Approved value</h2><p class="sub" style="margin:0">Approved estimates this month</p></div><div class="estimate-total">${money(won)}</div></div></div>`;
+}
+function estimateRow(e){
+  const c=getCustomer(e.customerId),t=calcEstimate(e);
+  return `<div class="list-item clickable" onclick="openEstimate('${e.id}')"><div><strong>${esc(e.number)}</strong><div>${esc(customerName(c))}</div><small class="help">${esc(e.title)}</small></div><div class="right"><strong>${money(t.total)}</strong><br><span class="badge ${statusClass(e.status)}">${esc(e.status)}</span></div></div>`;
+}
+
+function customers(){
+  const q=customerSearch.toLowerCase();const list=state.customers.filter(c=>`${c.first} ${c.last} ${c.phone} ${c.email} ${c.address}`.toLowerCase().includes(q));
+  return `<div class="row"><div><h1>Customers</h1><p class="sub">Manage your customer list.</p></div><button class="btn primary" onclick="addCustomer()">+ Add Customer</button></div>
+  <div class="card"><div class="search" style="margin-bottom:15px"><input aria-label="Search customers" placeholder="Search customers" value="${esc(customerSearch)}" oninput="customerSearch=this.value;render()"></div>
+  ${list.length?`<div class="list">${list.map(c=>`<div class="list-item clickable" onclick="openCustomer('${c.id}')"><div><strong>${esc(customerName(c))}</strong><div class="help">${esc(c.address||"No address")}</div></div><div class="right"><div>${esc(c.phone||"")}</div><small class="help">${esc(c.email||"")}</small></div></div>`).join("")}</div>`:`<div class="empty"><strong>No customers found.</strong>${q?"Try another search.":"Add your first customer to start creating estimates."}<br><button class="btn primary" style="margin-top:14px" onclick="addCustomer()">+ Add Customer</button></div>`}</div>`;
+}
+function addCustomer(){
+  const first=prompt("First name");if(first===null)return;
+  if(!first.trim()){showToast("First name is required.");return;}
+  const last=prompt("Last name")||"",phone=prompt("Phone")||"",email=prompt("Email")||"",address=prompt("Address")||"";
+  const dupe=state.customers.find(c=>c.email&&email&&c.email.toLowerCase()===email.toLowerCase());
+  if(dupe&&!confirm("A customer with this email already exists. Create anyway?"))return;
+  const c={id:uid("c"),first:first.trim(),last:last.trim(),phone:phone.trim(),email:email.trim(),address:address.trim(),notes:""};
+  state.customers.push(c);saveState();selectedCustomerId=c.id;setView("customer");showToast("Customer added.");
+}
+function openCustomer(id){selectedCustomerId=id;setView("customer");}
+function customerDetails(id){
+  const c=getCustomer(id);if(!c)return `<div class="card">Customer not found.</div>`;
+  const es=state.estimates.filter(e=>e.customerId===id);
+  return `<div class="row"><div><button class="btn ghost" onclick="setView('customers')">← Customers</button><h1 style="margin-top:12px">${esc(customerName(c))}</h1><p class="sub">${esc(c.address||"No address")}</p></div><button class="btn primary" onclick="startEstimate('${c.id}')">+ New Estimate</button></div>
+  <div class="grid grid-2"><div class="card"><h2>Contact</h2><div class="stack"><div>${esc(c.phone||"No phone")}</div><div>${esc(c.email||"No email")}</div><div class="contact-actions">
+  ${c.phone?`<a class="btn mini" href="tel:${esc(c.phone)}">Call</a><a class="btn mini" href="sms:${esc(c.phone)}">Text</a>`:""}
+  ${c.email?`<a class="btn mini" href="mailto:${esc(c.email)}">Email</a>`:""}
+  <button class="btn mini" onclick="editCustomer('${c.id}')">Edit Customer</button>
+</div></div></div>
+  <div class="card"><h2>Estimates</h2>${es.length?`<div class="list">${es.map(estimateRow).join("")}</div>`:`<div class="empty">No estimates for this customer yet.</div>`}</div></div>`;
+}
+function editCustomer(id){
+  const c=getCustomer(id);if(!c)return;
+  const first=prompt("First name",c.first);if(first===null)return;
+  c.first=first.trim();c.last=prompt("Last name",c.last)||"";c.phone=prompt("Phone",c.phone)||"";c.email=prompt("Email",c.email)||"";c.address=prompt("Address",c.address)||"";
+  saveState();render();showToast("Customer updated.");
+}
+
+function estimates(){
+  const q=estimateSearch.toLowerCase();
+  const list=state.estimates.filter(e=>{const c=getCustomer(e.customerId);return `${e.number} ${e.title} ${customerName(c)}`.toLowerCase().includes(q)});
+  return `<div class="row"><div><h1>Estimates</h1><p class="sub">Create, send and track customer estimates.</p></div><button class="btn primary" onclick="startEstimate()">+ New Estimate</button></div>
+  <div class="card"><div class="search"><input aria-label="Search estimates" placeholder="Search estimates" value="${esc(estimateSearch)}" oninput="estimateSearch=this.value;render()"></div>
+  <div class="actions" style="margin:15px 0"><button class="btn" onclick="filterEstimates('All')">All</button>${["Draft","Sent","Viewed","Approved","Declined","Expired"].map(s=>`<button class="btn" onclick="filterEstimates('${s}')">${s}</button>`).join("")}</div>
+  ${list.length?`<div class="list">${list.map(estimateRow).join("")}</div>`:`<div class="empty"><strong>No estimates found.</strong>${q?"Try another search.":"Create your first estimate."}</div>`}</div>`;
+}
+function filterEstimates(status){
+  if(status==="All"){estimateSearch="";render();return;}
+  const matches=state.estimates.filter(e=>e.status===status);
+  const content=matches.length?matches.map(estimateRow).join(""):`<div class="empty"><strong>No ${status.toLowerCase()} estimates.</strong></div>`;
+  const root=document.getElementById("app");root.innerHTML=shell(`<div class="row"><div><h1>${status} Estimates</h1><p class="sub">Estimates currently marked ${status.toLowerCase()}.</p></div><button class="btn" onclick="setView('estimates')">← All Estimates</button></div><div class="card"><div class="list">${content}</div></div>`);
+}
+
+function startEstimate(customerId=null){
+  selectedCustomerId=customerId;
+  draft={id:uid("e"),number:`${state.settings.prefix}-${state.nextNumber}`,customerId:customerId||"",title:"",address:customerId?(getCustomer(customerId)?.address||""):"",description:"",expiration:addDays(new Date(),state.settings.defaultExpiration),status:"Draft",items:[]};
+  currentWizardStep=1;setView("wizard");
+}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+Number(n));return x.toISOString().slice(0,10);}
+function wizard(){
+  const steps=["Customer","Job","Items","Review"];
+  let body="";
+  if(currentWizardStep===1)body=wizardCustomer();
+  if(currentWizardStep===2)body=wizardJob();
+  if(currentWizardStep===3)body=wizardItems();
+  if(currentWizardStep===4)body=wizardReview();
+  return `<div style="max-width:900px;margin:auto"><button class="btn ghost" onclick="cancelWizard()">← Cancel</button><h1 style="margin-top:10px">New Estimate</h1><p class="sub">Build a professional estimate step by step.</p>
+  <div class="stepper">${steps.map((s,i)=>`<span class="step ${currentWizardStep===i+1?'active':''}">${i+1}. ${s}</span>`).join("")}</div>${body}</div>`;
+}
+function wizardCustomer(){
+  const q=window.wizCustomerSearch||"";const list=state.customers.filter(c=>customerName(c).toLowerCase().includes(q.toLowerCase())||c.phone.includes(q));
+  return `<div class="card"><h2>Who is this estimate for?</h2><div class="search" style="margin-bottom:15px"><input placeholder="Search customers" value="${esc(q)}" oninput="window.wizCustomerSearch=this.value;render()"></div>
+  <div class="list">${list.map(c=>`<div class="list-item clickable" onclick="selectDraftCustomer('${c.id}')"><div><strong>${esc(customerName(c))}</strong><div class="help">${esc(c.address||"")}</div></div><span>${draft.customerId===c.id?"✓":""}</span></div>`).join("")}</div>
+  <div class="actions" style="margin-top:15px"><button class="btn" onclick="addCustomerToDraft()">+ Add New Customer</button><button class="btn primary" onclick="nextWizard()">Continue</button></div></div>`;
+}
+function selectDraftCustomer(id){draft.customerId=id;draft.address=getCustomer(id)?.address||"";render();}
+function addCustomerToDraft(){addCustomer();if(selectedCustomerId){draft.customerId=selectedCustomerId;draft.address=getCustomer(selectedCustomerId)?.address||"";setView("wizard");currentWizardStep=1;render();}}
+function wizardJob(){
+  return `<div class="card"><h2>Job Information</h2><div class="field">
+  <label class="required">Estimate title<input id="wTitle" value="${esc(draft.title)}" placeholder="e.g. Brake Pad & Rotor Service" required></label>
+  <label>Job address<input id="wAddress" value="${esc(draft.address)}"></label>
+  <label>Description<textarea id="wDescription" placeholder="Describe the work to be performed">${esc(draft.description)}</textarea></label>
+  <label>Estimate valid until<input id="wExpiration" type="date" value="${draft.expiration}"></label>
+  </div><div class="actions" style="margin-top:18px"><button class="btn" onclick="prevWizard()">Back</button><button class="btn primary" onclick="saveWizardJob()">Continue</button></div></div>`;
+}
+function saveWizardJob(){
+  const title=document.getElementById("wTitle").value.trim();if(!title){showToast("Enter a title for this estimate.");return;}
+  draft.title=title;draft.address=document.getElementById("wAddress").value.trim();draft.description=document.getElementById("wDescription").value.trim();draft.expiration=document.getElementById("wExpiration").value;nextWizard();
+}
+function wizardItems(){
+  const temp={items:draft.items};const totals=calcEstimate(temp);
+  return `<div class="card"><div class="row"><h2>Services & Materials</h2><button class="btn" onclick="openItemModal()">+ Add Item</button></div>
+  ${draft.items.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Description</th><th>Qty</th><th class="right">Total</th><th></th></tr></thead><tbody>${draft.items.map((i,idx)=>`<tr><td>${esc(i.description)}</td><td>${i.qty}</td><td class="right">${money(calcItem(i))}</td><td class="right"><button class="btn ghost" onclick="removeDraftItem(${idx})" aria-label="Remove ${esc(i.description)}">Remove</button></td></tr>`).join("")}</tbody></table></div>`:`<div class="empty"><strong>No items yet.</strong>Add labor or materials to calculate your estimate.</div>`}
+  <hr class="divider"><div class="row"><span>Subtotal</span><strong>${money(totals.subtotal)}</strong></div><div class="row"><span>Tax</span><strong>${money(totals.tax)}</strong></div><div class="row" style="font-size:20px;margin-top:8px"><strong>Total</strong><strong>${money(totals.total)}</strong></div>
+  <div class="actions" style="margin-top:18px"><button class="btn" onclick="prevWizard()">Back</button><button class="btn primary" onclick="nextWizard()">Review</button></div></div>`;
+}
+function openItemModal(){
+  const options=state.services.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join("");
+  document.body.insertAdjacentHTML("beforeend",`<div class="modal-backdrop" id="itemModal"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="itemTitle"><div class="row"><h2 id="itemTitle">Add Item</h2><button class="btn ghost" onclick="closeModal()">✕</button></div>
+  <form class="field" onsubmit="saveDraftItem(event)">
+    <label class="required">Description<input id="itemDesc" required placeholder="e.g. Installation Labor"></label>
+    <label>Add from saved services<select id="itemService" onchange="applyService()"><option value="">Choose a service…</option>${options}</select></label>
+    <div class="grid grid-2"><label class="required">Quantity<input id="itemQty" type="number" min=".01" step=".01" value="1" required></label><label>Unit<select id="itemUnit"><option>Job</option><option>Hour</option><option>Each</option><option>Sq Ft</option></select></label></div>
+    <div class="grid grid-2"><label>Labor cost<input id="itemLabor" type="number" min="0" step=".01" value="0"></label><label>Material cost<input id="itemMaterial" type="number" min="0" step=".01" value="0"></label></div>
+    <div class="grid grid-2"><label>Markup %<input id="itemMarkup" type="number" min="0" step=".01" value="${state.business.markup}"></label><label style="align-content:end"><span>Taxable</span><input id="itemTaxable" type="checkbox" checked style="width:auto"></label></div>
+    <button class="btn primary" type="submit">Add Item</button>
+  </form></section></div>`);
+}
+function applyService(){
+  const s=state.services.find(x=>x.id===document.getElementById("itemService").value);if(!s)return;
+  document.getElementById("itemDesc").value=s.name;document.getElementById("itemLabor").value=s.labor;document.getElementById("itemMaterial").value=s.material;document.getElementById("itemMarkup").value=s.markup;document.getElementById("itemTaxable").checked=s.taxable;
+}
+function closeModal(){document.getElementById("itemModal")?.remove();}
+function saveDraftItem(ev){
+  ev.preventDefault();
+  draft.items.push({description:document.getElementById("itemDesc").value.trim(),qty:Number(document.getElementById("itemQty").value),unit:document.getElementById("itemUnit").value,labor:Number(document.getElementById("itemLabor").value)||0,material:Number(document.getElementById("itemMaterial").value)||0,markup:Number(document.getElementById("itemMarkup").value)||0,taxable:document.getElementById("itemTaxable").checked});
+  closeModal();render();
+}
+function removeDraftItem(i){draft.items.splice(i,1);render();}
+function wizardReview(){
+  const c=getCustomer(draft.customerId),t=calcEstimate(draft);
+  return `<div class="card"><h2>Review Estimate</h2><div class="grid grid-2"><div><div class="help">CUSTOMER</div><strong>${esc(customerName(c))}</strong><div>${esc(c?.address||draft.address||"")}</div></div><div><div class="help">JOB</div><strong>${esc(draft.title)}</strong><div>${esc(draft.description||"")}</div></div></div><hr class="divider">
+  ${draft.items.length?draft.items.map(i=>`<div class="row" style="margin:8px 0"><span>${esc(i.description)} × ${i.qty}</span><strong>${money(calcItem(i))}</strong></div>`).join(""):`<div class="danger-box">No line items have been added. You can go back and add them.</div>`}
+  <hr class="divider"><div class="row"><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div><div class="row"><span>Tax</span><strong>${money(t.tax)}</strong></div><div class="row" style="font-size:22px"><strong>Total</strong><strong>${money(t.total)}</strong></div>
+  <div class="actions" style="margin-top:20px"><button class="btn" onclick="prevWizard()">Edit</button><button class="btn primary" onclick="generateEstimate()" ${draft.items.length?"":"disabled"}>Generate Estimate</button></div></div>`;
+}
+function nextWizard(){if(currentWizardStep===1&&!draft.customerId){showToast("Select a customer to continue.");return;}if(currentWizardStep===3&&draft.items.length===0){showToast("Add at least one line item.");return;}currentWizardStep=Math.min(4,currentWizardStep+1);render();}
+function prevWizard(){currentWizardStep=Math.max(1,currentWizardStep-1);render();}
+function cancelWizard(){if(confirm("Cancel this estimate? Unsaved changes will be lost.")){draft=null;setView("dashboard");}}
+function generateEstimate(){
+  draft.createdAt=new Date().toISOString();state.estimates.unshift(structuredClone(draft));state.nextNumber++;saveState();selectedEstimateId=draft.id;draft=null;setView("estimate");showToast("Estimate created.");
+}
+
+function openEstimate(id){selectedEstimateId=id;setView("estimate");}
+function estimateDetails(id){
+  const e=getEstimate(id);if(!e)return `<div class="card">Estimate not found.</div>`;const c=getCustomer(e.customerId),t=calcEstimate(e);
+  return `<div class="row"><div><button class="btn ghost" onclick="setView('estimates')">← Estimates</button><h1 style="margin-top:12px">${esc(e.number)}</h1><p class="sub">${esc(customerName(c))} · ${esc(e.title)}</p></div><span class="badge ${statusClass(e.status)}">${esc(e.status)}</span></div>
+  <div class="grid grid-2"><div class="card"><h2>${esc(e.title)}</h2><p>${esc(e.description||"No description provided.")}</p><hr class="divider">${e.items.map(i=>`<div class="row" style="margin:9px 0"><span>${esc(i.description)} × ${i.qty}</span><strong>${money(calcItem(i))}</strong></div>`).join("")}</div>
+  <div class="card"><h2>Total</h2><div class="estimate-total">${money(t.total)}</div><hr class="divider"><div class="row"><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div><div class="row"><span>Tax</span><strong>${money(t.tax)}</strong></div><div class="actions" style="margin-top:20px">
+  <button class="btn" onclick="openPreview('${e.id}')">Preview</button><button class="btn" onclick="downloadEstimate('${e.id}')">Save / Print PDF</button><button class="btn primary" onclick="sendEstimate('${e.id}')">Copy Customer Link</button>${c?.email?`<button class="btn" onclick="sendCustomerEmail('${e.id}')">Email</button>`:""}${c?.phone?`<button class="btn" onclick="sendCustomerSms('${e.id}')">Text</button>`:""}${state.business.paymentLink?`<button class="btn" onclick="openPayment('${e.id}')">Payment</button>`:""}</div>
+  <div class="actions" style="margin-top:10px">
+  <div class="actions" style="margin-top:10px"><button class="btn" onclick="editEstimate('${e.id}')">Edit</button><button class="btn" onclick="openPublic('${e.id}')">Open Customer View</button><button class="btn danger" onclick="deleteEstimate('${e.id}')">Delete</button></div></div></div>`;
+}
+function openPreview(id){selectedEstimateId=id;setView("preview");}
+function preview(id){
+  const e=getEstimate(id);if(!e)return `<div class="card">Estimate not found.</div>`;const c=getCustomer(e.customerId),t=calcEstimate(e),b=state.business;
+  return `<div class="public"><div class="row" style="margin-bottom:15px"><button class="btn" onclick="openEstimate('${id}')">← Back</button><div class="actions"><button class="btn" onclick="downloadEstimate('${id}')">Download PDF</button><button class="btn primary" onclick="sendEstimate('${id}')">Send</button><button class="btn" onclick="copyCustomerLink('${id}')">Customer Link</button></div></div>
+  <article class="card"><div class="row"><div>${b.logo?`<img src="${b.logo}" alt="${esc(b.name)} logo" style="max-width:120px;max-height:70px">`:`<strong>${esc(b.name)}</strong>`}<div class="help">${esc(b.phone)}<br>${esc(b.email)}<br>${esc(b.address)}</div></div><div class="right"><h2>ESTIMATE</h2><strong>${esc(e.number)}</strong><div class="help">Date: ${new Date(e.createdAt).toLocaleDateString()}<br>Valid until: ${esc(e.expiration)}</div></div></div><hr class="divider"><div><div class="help">PREPARED FOR</div><strong>${esc(customerName(c))}</strong><div>${esc(c?.address||e.address||"")}</div></div><h2 style="margin-top:25px">${esc(e.title)}</h2><p>${esc(e.description||"")}</p><div class="table-wrap"><table class="table"><thead><tr><th>Description</th><th>Qty</th><th class="right">Amount</th></tr></thead><tbody>${e.items.map(i=>`<tr><td>${esc(i.description)}</td><td>${i.qty}</td><td class="right">${money(calcItem(i))}</td></tr>`).join("")}</tbody></table></div><div style="max-width:360px;margin:20px 0 0 auto" class="stack"><div class="row"><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div><div class="row"><span>Tax</span><strong>${money(t.tax)}</strong></div><div class="row" style="font-size:24px"><strong>Total</strong><strong>${money(t.total)}</strong></div></div><hr class="divider"><h3>Terms</h3><p class="help" style="white-space:pre-wrap">${esc(b.terms)}</p></article></div>`;
+}
+async function sendEstimate(id){
+  const e=getEstimate(id);if(!e)return;
+  const previousStatus=e.status;
+  const token=await publishEstimate(id);
+  if(!token){e.status=previousStatus;return;}
+  e.status="Sent";
+  await saveState();
+  const link=location.origin+location.pathname+"?estimate="+encodeURIComponent(token);
+  try{await navigator.clipboard.writeText(link);showToast("Customer link copied.");}
+  catch{prompt("Copy this customer estimate link:",link);}
+  render();
+}
+async function copyCustomerLink(id){
+  const e=getEstimate(id);if(!e)return;
+  const token=await publishEstimate(id);
+  if(!token)return;
+  await saveState();
+  const link=location.origin+location.pathname+"?estimate="+encodeURIComponent(token);
+  try{await navigator.clipboard.writeText(link);showToast("Customer link copied.");}
+  catch{prompt("Copy this customer estimate link:",link);}
+}
+async function openPublic(id){
+  const token=await publishEstimate(id);
+  if(!token)return;
+  location.href=location.href.split("?")[0]+"?estimate="+encodeURIComponent(token);
+}
+function publicEstimate(id){
+  if(!publicLoaded){
+    return `<main class="public"><div class="card"><h2>Loading estimate…</h2><p class="help">Please wait while we load the customer estimate.</p></div></main>`;
+  }
+  if(!publicData){
+    return `<main class="public"><div class="card"><h2>Estimate not found</h2><p class="help">This estimate link may be invalid, expired, or no longer available.</p></div></main>`;
+  }
+  const e=publicData.estimate||publicData;
+  const c=publicData.customer||{};
+  const b=publicData.business||{};
+  const items=e.items||[];
+  const subtotal=items.reduce((s,i)=>s+calcItem(i),0);
+  const taxable=items.filter(i=>i.taxable).reduce((s,i)=>s+calcItem(i),0);
+  const tax=taxable*(Number(b.taxRate)||0)/100;
+  const t={subtotal,tax,total:subtotal+tax};
+  const status=publicData.status||e.status||"Sent";
+  const canAct=!["Approved","Declined","Expired"].includes(status);
+  return `<main class="public" aria-label="Customer estimate">
+    <div class="card">
+      <div class="actions" style="justify-content:flex-end"><button class="btn mini" onclick="window.print()">Print / Save PDF</button></div>
+      <div class="row">
+        <div>${b.logo?`<img src="${esc(b.logo)}" alt="${esc(b.name||"Business")} logo" style="max-width:130px;max-height:70px">`:`<strong style="font-size:22px">${esc(b.name||"QuickQuote Auto")}</strong>`}</div>
+        <span class="badge ${statusClass(status)}">${esc(status)}</span>
+      </div>
+      <hr class="divider">
+      <div class="row">
+        <div><div class="help">ESTIMATE</div><h1>${esc(e.number)}</h1><div>${esc(e.title||"")}</div></div>
+        <div class="right"><div class="help">PREPARED FOR</div><strong>${esc(customerName(c))}</strong><div>${esc(c.address||e.address||"")}</div></div>
+      </div>
+      <hr class="divider">
+      ${(e.items||[]).map(i=>`<div class="row" style="margin:12px 0"><span>${esc(i.description)} × ${i.qty}</span><strong>${money(calcItem(i))}</strong></div>`).join("")}
+      <hr class="divider">
+      <div class="stack" style="max-width:340px;margin-left:auto">
+        <div class="row"><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div>
+        <div class="row"><span>Tax</span><strong>${money(t.tax)}</strong></div>
+        <div class="row" style="font-size:26px"><strong>Total</strong><strong>${money(t.total)}</strong></div>
+      </div>
+      <div class="notice" style="margin-top:22px">${esc(e.description||"Please review the estimate details above.")}</div>
+      ${e.expiration?`<p class="help" style="margin-top:12px">Estimate valid through ${esc(e.expiration)}.</p>`:""}
+      ${canAct
+        ? `<div class="actions" style="margin-top:22px"><button class="btn primary" onclick="approveEstimatePublic('${esc(publicToken)}')">Approve Estimate</button><button class="btn" onclick="declinePublicEstimate('${esc(publicToken)}')">Decline</button>${b.paymentLink?`<a class="btn" href="${esc(b.paymentLink)}" target="_blank" rel="noopener">Pay Online</a>`:""}</div>`
+        : `<div class="notice" style="margin-top:22px">This estimate has been ${esc(status.toLowerCase())}. No further action is required.</div>`}
+      <p class="help" style="margin-top:18px">Questions? Call ${esc(b.phone||"")} or email ${esc(b.email||"")}.</p>
+    </div>
+  </main>`;
+}
+
+function approveEstimatePublic(token){
+  document.body.insertAdjacentHTML("beforeend",`<div class="modal-backdrop" id="approvalModal"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="approvalTitle">
+    <h2 id="approvalTitle">Approve Estimate</h2>
+    <p class="help">By signing below, you agree to the scope of work and total shown on this estimate.</p>
+    <form class="field" onsubmit="event.preventDefault();approvePublicEstimate('${esc(token)}')">
+      <label class="required">Your name<input id="publicSignName" required autocomplete="name"></label>
+      <label class="required">Signature<input id="publicSignature" placeholder="Type your full name as your signature" required autocomplete="off"></label>
+      <label style="display:flex;align-items:center;gap:8px;font-weight:600"><input id="publicTerms" type="checkbox" style="width:auto" required> I agree to the estimate terms.</label>
+      <div class="actions"><button type="button" class="btn" onclick="closeApproval()">Cancel</button><button class="btn primary" type="submit">Approve & Sign</button></div>
+    </form>
+  </section></div>`);
+}
+function closeApproval(){document.getElementById("approvalModal")?.remove();}
+
+function approveEstimate(id){
+  // Internal preview action: publish first, then open the public approval flow.
+  (async()=>{
+    const token=await publishEstimate(id);
+    if(token){location.href=location.href.split("?")[0]+"?estimate="+encodeURIComponent(token);}
+  })();
+}
+function editEstimate(id){
+  const e=getEstimate(id);draft=structuredClone(e);selectedEstimateId=id;currentWizardStep=2;setView("wizard");
+}
+function deleteEstimate(id){
+  if(!confirm("Delete this estimate? This cannot be undone."))return;
+  state.estimates=state.estimates.filter(e=>e.id!==id);saveState();setView("estimates");showToast("Estimate deleted.");
+}
+async function ensureCustomerLink(id){
+  const e=getEstimate(id); if(!e) return null;
+  const token=await publishEstimate(id); if(!token) return null;
+  e.status=e.status==="Draft"?"Sent":e.status; await saveState();
+  return location.origin+location.pathname+"?estimate="+encodeURIComponent(token);
+}
+async function sendCustomerEmail(id){
+  const e=getEstimate(id),c=getCustomer(e?.customerId); if(!c?.email){showToast("Customer email is missing.");return}
+  const link=await ensureCustomerLink(id); if(!link)return;
+  location.href=`mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent("Estimate "+e.number)}&body=${encodeURIComponent("Hello "+customerName(c)+",\n\nYour estimate is ready: "+link+"\n\nThank you.")}`;
+}
+async function sendCustomerSms(id){
+  const e=getEstimate(id),c=getCustomer(e?.customerId); if(!c?.phone){showToast("Customer phone is missing.");return}
+  const link=await ensureCustomerLink(id); if(!link)return;
+  location.href=`sms:${encodeURIComponent(c.phone)}?body=${encodeURIComponent("Your estimate "+e.number+" is ready: "+link)}`;
+}
+function openPayment(id){
+  if(!state.business.paymentLink){showToast("Add a payment link in Settings first.");return}
+  const e=getEstimate(id);const c=getCustomer(e?.customerId);
+  const url=new URL(state.business.paymentLink);url.searchParams.set("estimate",e.number);if(c)url.searchParams.set("customer",customerName(c));
+  window.open(url.toString(),"_blank","noopener");
+}
+function downloadEstimate(id){
+  /*
+    BACKEND: Replace this prototype action with server-side PDF generation when you want a downloadable file generated automatically
+    (e.g. a PDF service or your backend). The browser print dialog is used
+    here so the user can Save as PDF without another dependency.
+  */
+  openPreview(id);setTimeout(()=>window.print(),300);
+}
+
+function services(){
+  return `<div class="row"><div><h1>Services</h1><p class="sub">Reusable services and pricing presets.</p></div><button class="btn primary" onclick="addService()">+ Add Service</button></div>
+  <div class="card"><div class="list">${state.services.length?state.services.map(s=>`<div class="list-item"><div><strong>${esc(s.name)}</strong><div class="help">${esc(s.description||"")}</div></div><div class="right"><strong>${money((s.labor+s.material)*(1+s.markup/100))}</strong><br><button class="btn ghost" onclick="editService('${s.id}')">Edit</button> <button class="btn ghost" onclick="deleteService('${s.id}')">Delete</button></div></div>`).join(""):`<div class="empty"><strong>No saved services.</strong>Add common services to build estimates faster.</div>`}</div></div>`;
+}
+function addService(){
+  const name=prompt("Service name");if(name===null)return;if(!name.trim()){showToast("Service name is required.");return;}
+  const labor=Number(prompt("Labor cost","0"))||0,material=Number(prompt("Material cost","0"))||0,markup=Number(prompt("Markup %",state.business.markup))||0;
+  state.services.push({id:uid("s"),name:name.trim(),description:prompt("Description","")||"",labor,material,markup,taxable:true});saveState();render();showToast("Service saved.");
+}
+function editService(id){
+  const s=state.services.find(x=>x.id===id);if(!s)return;
+  s.name=prompt("Service name",s.name)||s.name;s.description=prompt("Description",s.description)||"";s.labor=Number(prompt("Labor cost",s.labor))||0;s.material=Number(prompt("Material cost",s.material))||0;s.markup=Number(prompt("Markup %",s.markup))||0;saveState();render();showToast("Service updated.");
+}
+function deleteService(id){if(!confirm("Delete this service?"))return;state.services=state.services.filter(s=>s.id!==id);saveState();render();showToast("Service deleted.");}
+
+function settings(){
+  return `<div><h1>Settings</h1><p class="sub">Manage your business and estimate defaults.</p>
+  <div class="grid grid-2">
+    <div class="card"><h2>Business Profile</h2><form class="field" onsubmit="saveSettingsBusiness(event)">
+      <label class="required">Business name<input id="setName" value="${esc(state.business.name)}" required></label>
+      <label>Phone<input id="setPhone" value="${esc(state.business.phone)}"></label><label>Email<input id="setEmail" type="email" value="${esc(state.business.email)}"></label>
+      <label>Address<input id="setAddress" value="${esc(state.business.address)}"></label><label>Website<input id="setWebsite" value="${esc(state.business.website)}"></label><label>License number<input id="setLicense" value="${esc(state.business.license)}"></label>
+      <label>Payment link (Stripe Payment Link or other checkout URL)<input id="setPaymentLink" type="url" placeholder="https://..." value="${esc(state.business.paymentLink||"")}"></label>
+      <button class="btn primary">Save Changes</button></form></div>
+    <div class="card"><h2>Estimate Settings</h2><form class="field" onsubmit="saveEstimateSettings(event)">
+      <label>Estimate prefix<input id="setPrefix" value="${esc(state.settings.prefix)}" required></label><label>Next estimate number<input id="setNumber" type="number" min="1" value="${state.nextNumber}" required></label>
+      <label>Default expiration (days)<input id="setExpiration" type="number" min="1" value="${state.settings.defaultExpiration}" required></label>
+      <label>Default tax rate (%)<input id="setTax" type="number" min="0" step=".01" value="${state.business.taxRate}"></label><label>Default markup (%)<input id="setMarkup" type="number" min="0" step=".01" value="${state.business.markup}"></label>
+      <button class="btn primary">Save Settings</button></form></div>
+    <div class="card"><h2>Terms & Conditions</h2><form class="field" onsubmit="saveTerms(event)"><label>Default estimate terms<textarea id="setTerms">${esc(state.business.terms)}</textarea></label><button class="btn primary">Save Terms</button></form></div>
+    <div class="card"><h2>Account</h2><p class="help">${esc(state.user?.email||"")}</p><button class="btn danger" onclick="resetDemo()">Reset Demo Data</button></div>
+  </div></div>`;
+}
+function saveSettingsBusiness(ev){ev.preventDefault();Object.assign(state.business,{name:document.getElementById("setName").value.trim(),phone:document.getElementById("setPhone").value.trim(),email:document.getElementById("setEmail").value.trim(),address:document.getElementById("setAddress").value.trim(),website:document.getElementById("setWebsite").value.trim(),license:document.getElementById("setLicense").value.trim(),paymentLink:document.getElementById("setPaymentLink")?.value.trim()||""});saveState();render();showToast("Business profile saved.");}
+function saveEstimateSettings(ev){ev.preventDefault();state.settings.prefix=document.getElementById("setPrefix").value.trim()||"EST";state.nextNumber=Number(document.getElementById("setNumber").value)||1000;state.settings.defaultExpiration=Number(document.getElementById("setExpiration").value)||14;state.business.taxRate=Number(document.getElementById("setTax").value)||0;state.business.markup=Number(document.getElementById("setMarkup").value)||0;saveState();render();showToast("Estimate settings saved.");}
+function saveTerms(ev){ev.preventDefault();state.business.terms=document.getElementById("setTerms").value;saveState();render();showToast("Terms saved.");}
+async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=structuredClone(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
+
+const originalRender=render;
+function patchedRender(){
+  if(view==="setup"){document.getElementById("app").innerHTML=setup();return;}
+  originalRender();
+}
+window.addEventListener("unhandledrejection", (event) => { console.error("Unhandled QuickQuote promise rejection:", event.reason); });
+render=patchedRender;
+bootstrapSupabase();
+</script>
 </body>
 </html>
