@@ -72,6 +72,7 @@ label{display:grid;gap:6px;font-weight:700;font-size:13px}.field{display:grid;ga
 */
 
 const STORAGE_KEY = "quickquote-auto-v1";
+function cloneData(value){return JSON.parse(JSON.stringify(value));}
 
 const seed = {
   user: null,
@@ -156,7 +157,7 @@ function createSupabaseRestClient(){
 }
 const supabaseClient=createSupabaseRestClient();
 function loadState(){
-  try{const raw=localStorage.getItem(STORAGE_KEY);return raw?Object.assign(structuredClone(seed),JSON.parse(raw)):structuredClone(seed)}catch{return structuredClone(seed)}
+  try{const raw=localStorage.getItem(STORAGE_KEY);return raw?Object.assign(cloneData(seed),JSON.parse(raw)):cloneData(seed)}catch{return cloneData(seed)}
 }
 
 async function saveState(){
@@ -176,9 +177,9 @@ async function loadCloudState(user){
   const {data,error}=await supabaseClient.from("app_data").select("data").eq("user_id",user.id).maybeSingle();
   if(error){ console.error(error); showToast("Could not load your cloud data."); return; }
   if(data?.data){
-    state=Object.assign(structuredClone(seed),data.data,{user:{id:user.id,email:user.email}});
+    state=Object.assign(cloneData(seed),data.data,{user:{id:user.id,email:user.email}});
   }else{
-    state=structuredClone(seed);
+    state=cloneData(seed);
     state.user={id:user.id,email:user.email};
     await saveState();
   }
@@ -200,13 +201,13 @@ async function bootstrapSupabase(){
     await loadCloudState(session.user);
     view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
   }else{
-    state=structuredClone(seed);
+    state=cloneData(seed);
     state.user=null;
     view="login";
   }
   render();
   supabaseClient.auth.onAuthStateChange(async(event,session)=>{
-    if(event==="SIGNED_OUT"){ state=structuredClone(seed);state.user=null;view="login";render();return; }
+    if(event==="SIGNED_OUT"){ state=cloneData(seed);state.user=null;view="login";render();return; }
     if(event==="SIGNED_IN" && session?.user){
       await loadCloudState(session.user);
       view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
@@ -416,7 +417,7 @@ async function handleAuth(ev,mode){
     const {data,error}=await supabaseClient.auth.signUp({email,password:pass});
     if(error){showToast(error.message);return;}
     if(data.session){
-      state=structuredClone(seed);state.user={email};await saveState();setView("setup");
+      state=cloneData(seed);state.user={email};await saveState();setView("setup");
       showToast("Account created. Let's set up your business.");
     }else{
       setView("login");
@@ -617,7 +618,7 @@ function nextWizard(){if(currentWizardStep===1&&!draft.customerId){showToast("Se
 function prevWizard(){currentWizardStep=Math.max(1,currentWizardStep-1);render();}
 function cancelWizard(){if(confirm("Cancel this estimate? Unsaved changes will be lost.")){draft=null;setView("dashboard");}}
 function generateEstimate(){
-  draft.createdAt=new Date().toISOString();state.estimates.unshift(structuredClone(draft));state.nextNumber++;saveState();selectedEstimateId=draft.id;draft=null;setView("estimate");showToast("Estimate created.");
+  draft.createdAt=new Date().toISOString();state.estimates.unshift(cloneData(draft));state.nextNumber++;saveState();selectedEstimateId=draft.id;draft=null;setView("estimate");showToast("Estimate created.");
 }
 
 function openEstimate(id){selectedEstimateId=id;setView("estimate");}
@@ -731,7 +732,7 @@ function approveEstimate(id){
   })();
 }
 function editEstimate(id){
-  const e=getEstimate(id);draft=structuredClone(e);selectedEstimateId=id;currentWizardStep=2;setView("wizard");
+  const e=getEstimate(id);draft=cloneData(e);selectedEstimateId=id;currentWizardStep=2;setView("wizard");
 }
 function deleteEstimate(id){
   if(!confirm("Delete this estimate? This cannot be undone."))return;
@@ -804,7 +805,7 @@ function settings(){
 function saveSettingsBusiness(ev){ev.preventDefault();Object.assign(state.business,{name:document.getElementById("setName").value.trim(),phone:document.getElementById("setPhone").value.trim(),email:document.getElementById("setEmail").value.trim(),address:document.getElementById("setAddress").value.trim(),website:document.getElementById("setWebsite").value.trim(),license:document.getElementById("setLicense").value.trim(),paymentLink:document.getElementById("setPaymentLink")?.value.trim()||""});saveState();render();showToast("Business profile saved.");}
 function saveEstimateSettings(ev){ev.preventDefault();state.settings.prefix=document.getElementById("setPrefix").value.trim()||"EST";state.nextNumber=Number(document.getElementById("setNumber").value)||1000;state.settings.defaultExpiration=Number(document.getElementById("setExpiration").value)||14;state.business.taxRate=Number(document.getElementById("setTax").value)||0;state.business.markup=Number(document.getElementById("setMarkup").value)||0;saveState();render();showToast("Estimate settings saved.");}
 function saveTerms(ev){ev.preventDefault();state.business.terms=document.getElementById("setTerms").value;saveState();render();showToast("Terms saved.");}
-async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=structuredClone(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
+async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=cloneData(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
 
 const originalRender=render;
 function patchedRender(){
@@ -825,7 +826,7 @@ window.onerror = function(message, source, lineno, colno, error){
 bootstrapSupabase().catch(function(error){
   console.error("QuickQuote bootstrap error:", error);
   try{
-    state=structuredClone(seed);
+    state=cloneData(seed);
     state.user=null;
     view="login";
     render();
