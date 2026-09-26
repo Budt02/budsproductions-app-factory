@@ -1,4 +1,5 @@
 name: Build QuickQuote Auto
+# Rebuild after WebView Supabase fix
 
 on:
   workflow_dispatch:
