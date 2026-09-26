@@ -813,7 +813,27 @@ function patchedRender(){
 }
 window.addEventListener("unhandledrejection", (event) => { console.error("Unhandled QuickQuote promise rejection:", event.reason); });
 render=patchedRender;
-bootstrapSupabase();
+
+// Keep the Android app from ever showing a blank screen if startup hits an unexpected error.
+window.onerror = function(message, source, lineno, colno, error){
+  console.error("QuickQuote startup error:", message, source, lineno, colno, error);
+  const app=document.getElementById("app");
+  if(app) app.innerHTML='<main class="auth"><section class="auth-card"><div class="auth-brand">QUICKQUOTE <span>AUTO</span></div><h2>QuickQuote Auto</h2><p class="error">The app hit a startup error. Please close and reopen it.</p><p class="help">Error: '+esc(String(message||"Unknown error"))+'</p></section></main>';
+  return true;
+};
+
+bootstrapSupabase().catch(function(error){
+  console.error("QuickQuote bootstrap error:", error);
+  try{
+    state=structuredClone(seed);
+    state.user=null;
+    view="login";
+    render();
+  }catch(renderError){
+    const app=document.getElementById("app");
+    if(app) app.innerHTML='<main class="auth"><section class="auth-card"><div class="auth-brand">QUICKQUOTE <span>AUTO</span></div><h2>QuickQuote Auto</h2><p class="error">Startup failed. Please close and reopen the app.</p></section></main>';
+  }
+});
 </script>
 </body>
 </html>
