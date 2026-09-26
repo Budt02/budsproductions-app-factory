@@ -28,6 +28,28 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Add Android startup error guard
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("www/index.html")
+          s = p.read_text()
+          guard = r'''<script>
+          window.onerror=function(message,source,lineno,colno,error){
+            document.body.innerHTML='<div style="padding:20px;font:16px Arial;color:#b00020;background:#fff;min-height:100vh"><h2>QuickQuote Auto startup error</h2><pre style="white-space:pre-wrap">'+String(message)+'\nLine: '+String(lineno||'')+'</pre></div>';
+            return true;
+          };
+          window.addEventListener('unhandledrejection',function(e){
+            document.body.innerHTML='<div style="padding:20px;font:16px Arial;color:#b00020;background:#fff;min-height:100vh"><h2>QuickQuote Auto startup error</h2><pre style="white-space:pre-wrap">'+String(e.reason && (e.reason.stack || e.reason.message || e.reason) || 'Unknown promise error')+'</pre></div>';
+          });
+          </script>
+          '''
+          marker = "<script>"
+          if guard not in s:
+              s = s.replace(marker, marker + "\n" + guard, 1)
+          p.write_text(s)
+          PY
+
       - name: Add Android platform
         run: npx cap add android
 
