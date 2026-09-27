@@ -46,7 +46,7 @@ jobs:
           '''
           marker = "<script>"
           if guard not in s:
-              s = s.replace(marker, marker + "\n" + guard, 1)
+              s = s.replace(marker, guard + "\n" + marker, 1)
           p.write_text(s)
           PY
 
