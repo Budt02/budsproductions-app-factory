@@ -127,10 +127,27 @@ function createSupabaseRestClient(){
   const writeSession=(s)=>{try{if(s)localStorage.setItem(SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SESSION_KEY)}catch{}};
   const headers=(token)=>({"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+(token||readSession()?.access_token||SUPABASE_ANON_KEY),"Content-Type":"application/json"});
   async function request(path,options={}){
-    const r=await fetch(SUPABASE_URL+path,{...options,headers:{...headers(options.token),...(options.headers||{})}});
-    const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch{data=text}
-    if(!r.ok) return {data:null,error:{message:data?.msg||data?.message||text||("HTTP "+r.status),status:r.status}};
-    return {data,error:null};
+    const url=SUPABASE_URL+path;
+    const requestHeaders={...headers(options.token),...(options.headers||{})};
+    const nativeHttp=window.Capacitor?.Plugins?.CapacitorHttp;
+    try{
+      if(nativeHttp?.request){
+        const nativeOptions={url,method:options.method||"GET",headers:requestHeaders,responseType:"json"};
+        if(options.body){
+          try{nativeOptions.data=JSON.parse(options.body)}catch{nativeOptions.data=options.body}
+        }
+        const nativeResponse=await nativeHttp.request(nativeOptions);
+        const data=nativeResponse?.data ?? null;
+        if(Number(nativeResponse?.status||0)>=400) return {data:null,error:{message:data?.msg||data?.message||JSON.stringify(data)||("HTTP "+nativeResponse.status),status:nativeResponse.status}};
+        return {data,error:null};
+      }
+      const r=await fetch(url,{method:options.method||"GET",headers:requestHeaders,body:options.body});
+      const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch{data=text}
+      if(!r.ok) return {data:null,error:{message:data?.msg||data?.message||text||("HTTP "+r.status),status:r.status}};
+      return {data,error:null};
+    }catch(error){
+      return {data:null,error:{message:error?.message||String(error),status:0}};
+    }
   }
   function table(name){
     return {
@@ -378,25 +395,30 @@ async function testSupabaseConnection(){
   const el=document.getElementById("connectionResult");
   if(el) el.textContent="Testing Supabase connection…";
   try{
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),10000);
-    const response=await fetch(SUPABASE_URL+"/auth/v1/settings",{
-      method:"GET",
-      headers:{apikey:SUPABASE_ANON_KEY},
-      signal:controller.signal,
-      cache:"no-store"
-    });
-    clearTimeout(timer);
-    const body=await response.text();
-    if(response.ok){
+    const nativeHttp=window.Capacitor?.Plugins?.CapacitorHttp;
+    let response, body;
+    if(nativeHttp?.get){
+      response=await nativeHttp.get({
+        url:SUPABASE_URL+"/auth/v1/settings",
+        headers:{apikey:SUPABASE_ANON_KEY},
+        responseType:"json",
+        connectTimeout:10000,
+        readTimeout:10000
+      });
+      body=typeof response?.data==="string"?response.data:JSON.stringify(response?.data??"");
+    }else{
+      response=await fetch(SUPABASE_URL+"/auth/v1/settings",{method:"GET",headers:{apikey:SUPABASE_ANON_KEY}});
+      body=await response.text();
+    }
+    if(Number(response?.status||0)>=200 && Number(response?.status||0)<300){
       if(el) el.innerHTML="<strong style=\"color:var(--success)\">Connection successful.</strong> Supabase Auth is reachable (HTTP "+response.status+").";
       showToast("Supabase connection successful.");
     }else{
-      if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Supabase responded with HTTP "+response.status+".</strong> "+escapeHtml(body.slice(0,180));
+      if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Supabase responded with HTTP "+response.status+".</strong> "+escapeHtml(String(body).slice(0,180));
       showToast("Supabase responded with HTTP "+response.status+".");
     }
   }catch(err){
-    const detail=err?.name==="AbortError"?"Request timed out after 10 seconds.":(err?.message||String(err));
+    const detail=err?.message||String(err);
     if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Connection failed.</strong> "+escapeHtml(detail)+"<br>Page origin: "+escapeHtml(location.origin);
     showToast("Connection test failed: "+detail);
   }
