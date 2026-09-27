@@ -402,7 +402,7 @@ async function testSupabaseConnection(){
   }
 }
 function escapeHtml(value){
-  return String(value).replace(/[&<>"\']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
+function escapeHtml(value){return String(value).split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split(String.fromCharCode(34)).join("&quot;").split(String.fromCharCode(39)).join("&#39;");}
 }
 
 async function handleAuth(ev,mode){
