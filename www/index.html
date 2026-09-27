@@ -401,9 +401,7 @@ async function testSupabaseConnection(){
     showToast("Connection test failed: "+detail);
   }
 }
-function escapeHtml(value){
 function escapeHtml(value){return String(value).split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split(String.fromCharCode(34)).join("&quot;").split(String.fromCharCode(39)).join("&#39;");}
-}
 
 async function handleAuth(ev,mode){
   ev.preventDefault();
