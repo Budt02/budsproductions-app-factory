@@ -655,7 +655,7 @@ function deleteEstimate(id){
   state.estimates=state.estimates.filter(e=>e.id!==id);saveState();setView("estimates");showToast("Estimate deleted.");
 }
 function pdfAscii(v=""){
-  return String(v??"").replace(/[^\\x20-\\x7E]/g,"?").replace(/\\/g,"\\\\").replace(/[()]/g,m=>"\"+m);
+  return String(v??"").replace(/[^\x20-\x7E]/g,"?").replace(/\\/g,"\\\\").replace(/[()]/g,m=>"\\"+m);
 }
 function pdfWrap(text,max=88){
   const words=String(text??"").split(/\\s+/),out=[];let line="";
