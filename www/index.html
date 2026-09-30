@@ -724,7 +724,7 @@ function buildEstimatePdf(e,c,t,b){
     kids.push(pageId);
   }
   objs[2]="<< /Type /Pages /Kids ["+kids.map(id=>id+" 0 R").join(" ")+"] /Count "+kids.length+" >>";
-  let pdf="%PDF-1.4\\n%âãÏÓ\\n",offsets=[0];
+  let pdf="%PDF-1.4\\n%1234\\n",offsets=[0];
   for(let i=1;i<objs.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\\n"+objs[i]+"\\nendobj\\n";}
   const xref=pdf.length;
   pdf+="xref\\n0 "+objs.length+"\\n0000000000 65535 f \\n";
