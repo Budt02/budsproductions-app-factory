@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>QuickQuote Auto — Automotive Estimator</title>
-
+<title>QuickQuote Pro — Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   --bg:#f5f7fb;--surface:#fff;--surface2:#eef2f7;--text:#172033;--muted:#667085;
@@ -41,15 +41,13 @@ label{display:grid;gap:6px;font-weight:700;font-size:13px}.field{display:grid;ga
 @media(max-width:900px){.sidebar{display:none}.main{margin-left:0;width:100%}.mobile-menu{display:inline-flex}.mobile-brand{display:block}.topbar{padding:0 16px}.content{padding:20px 16px}.grid-3{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.mobile-bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);z-index:30;padding:6px;justify-content:space-around}.mobile-bottom button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:800;padding:8px}.mobile-bottom button.active{color:var(--primary)}.content{padding-bottom:88px}}
 @media(max-width:620px){h1{font-size:25px}.grid-2{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.card{padding:16px}.actions .btn{flex:1;min-width:130px}.list-item{align-items:flex-start}.estimate-total{font-size:28px}.table-wrap{overflow:auto}.topbar{height:58px}}
 @media(max-width:420px){.kpi{grid-template-columns:1fr}.actions .btn{width:100%;flex:none}}
-@media print{body{background:#fff}.sidebar,.topbar,.mobile-bottom,.actions,.btn,.toast{display:none!important}.main{margin:0;width:100%}.content{padding:0;max-width:none}.public{max-width:none;margin:0;padding:0}.card{box-shadow:none;border:0}}
-.contact-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.mini{font-size:12px;padding:7px 9px}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
 /*
-  QUICKQUOTE AUTO — SINGLE-FILE FRONT END
+  QUICKQUOTE PRO — SINGLE-FILE FRONT END
   --------------------------------------
   Component tree:
     App
@@ -71,31 +69,30 @@ label{display:grid;gap:6px;font-weight:700;font-size:13px}.field{display:grid;ga
   Replace localStorage functions with API/database calls when ready.
 */
 
-const STORAGE_KEY = "quickquote-auto-v1";
-function cloneData(value){return JSON.parse(JSON.stringify(value));}
+const STORAGE_KEY = "quickquote-pro-demo-v1";
 
 const seed = {
   user: null,
   business: {
     name:"Your Business Name", phone:"936-555-1234", email:"you@example.com",
     address:"", website:"", license:"", logo:"", taxRate:8.25, markup:20,
-    terms:"Payment due according to agreed terms. Estimate valid until the expiration date.", paymentLink:""
+    terms:"Payment due according to agreed terms. Estimate valid until the expiration date."
   },
   customers: [
     {id:"c1",first:"John",last:"Smith",phone:"936-555-1001",email:"john@example.com",address:"123 Main Street",notes:""},
     {id:"c2",first:"Mike",last:"Jones",phone:"936-555-1002",email:"",address:"456 Oak Street",notes:""}
   ],
   services: [
-    {id:"s1",name:"Brake Pad & Rotor Service",description:"Replace existing water heater.",labor:650,material:900,markup:20,taxable:true},
-    {id:"s2",name:"Oil Change Service",description:"Install faucet and test connections.",labor:175,material:50,markup:20,taxable:true},
-    {id:"s3",name:"Diagnostic Inspection",description:"Repair damaged fence section.",labor:450,material:175,markup:20,taxable:true}
+    {id:"s1",name:"Water Heater Replacement",description:"Replace existing water heater.",labor:650,material:900,markup:20,taxable:true},
+    {id:"s2",name:"Faucet Installation",description:"Install faucet and test connections.",labor:175,material:50,markup:20,taxable:true},
+    {id:"s3",name:"Fence Repair",description:"Repair damaged fence section.",labor:450,material:175,markup:20,taxable:true}
   ],
   estimates: [
-    {id:"e1",number:"EST-1001",customerId:"c1",title:"Brake Pad & Rotor Service",address:"123 Main Street",description:"Replace existing water heater.",expiration:"2026-10-09",status:"Approved",
+    {id:"e1",number:"EST-1001",customerId:"c1",title:"Water Heater Replacement",address:"123 Main Street",description:"Replace existing water heater.",expiration:"2026-10-09",status:"Approved",
       items:[{description:"Water Heater",qty:1,unit:"Job",labor:650,material:900,markup:20,taxable:true},{description:"Installation Labor",qty:1,unit:"Job",labor:0,material:0,markup:0,taxable:true,flat:650}],
       createdAt:"2026-09-24T12:00:00",approvedAt:"2026-09-24T15:00:00"},
-    {id:"e2",number:"EST-1002",customerId:"c2",title:"Diagnostic Inspection",address:"456 Oak Street",description:"Repair damaged fence section.",expiration:"2026-10-10",status:"Sent",
-      items:[{description:"Diagnostic Inspection",qty:1,unit:"Job",labor:450,material:175,markup:20,taxable:true}],
+    {id:"e2",number:"EST-1002",customerId:"c2",title:"Fence Repair",address:"456 Oak Street",description:"Repair damaged fence section.",expiration:"2026-10-10",status:"Sent",
+      items:[{description:"Fence Repair",qty:1,unit:"Job",labor:450,material:175,markup:20,taxable:true}],
       createdAt:"2026-09-25T09:00:00"}
   ],
   settings:{prefix:"EST",startingNumber:1003,defaultExpiration:14},
@@ -114,60 +111,16 @@ let estimateSearch = "";
 let currentWizardStep = 1;
 let draft = null;
 let toastTimer = null;
+
+const SUPABASE_URL = "https://evkexulkxrvtisrhaohj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_C0jfubBEvzZAKRlfkegByA_uVQkwMTh";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let supabaseReady = false;
 let saveTimer = null;
 
-const SUPABASE_URL = "https://iprzctq4jbojjwebeous.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_GPtzVYlPVI3Q2aDOkM_tVA_RVpl5rnw";
-
-function createSupabaseRestClient(){
-  const SESSION_KEY="quickquote-auto-session";
-  let listeners=[];
-  const readSession=()=>{try{return JSON.parse(localStorage.getItem(SESSION_KEY)||"null")}catch{return null}};
-  const writeSession=(s)=>{try{if(s)localStorage.setItem(SESSION_KEY,JSON.stringify(s));else localStorage.removeItem(SESSION_KEY)}catch{}};
-  const headers=(token)=>({"apikey":SUPABASE_ANON_KEY,"Authorization":"Bearer "+(token||readSession()?.access_token||SUPABASE_ANON_KEY),"Content-Type":"application/json"});
-  async function request(path,options={}){
-  const url=SUPABASE_URL+path;
-  const requestHeaders={...headers(options.token),...(options.headers||{})};
-  try{
-    const r=await fetch(url,{method:options.method||"GET",headers:requestHeaders,body:options.body,cache:"no-store"});
-    const text=await r.text(); let data=null; try{data=text?JSON.parse(text):null}catch{data=text}
-    if(!r.ok) return {data:null,error:{message:data?.msg||data?.message||text||("HTTP "+r.status),status:r.status}};
-    return {data,error:null};
-  }catch(error){
-    return {data:null,error:{message:error?.message||String(error),status:0}};
-  }
-}
-  function table(name){
-    return {
-      select(columns="*"){
-        const state={url:"/rest/v1/"+encodeURIComponent(name)+"?select="+encodeURIComponent(columns),filters:[]};
-        const api={
-          eq(k,v){state.filters.push("&"+encodeURIComponent(k)+"=eq."+encodeURIComponent(v));return api;},
-          maybeSingle(){return request(state.url+state.filters.join("")).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));},
-          upsert(row,opts={}){let url="/rest/v1/"+encodeURIComponent(name); if(opts.onConflict)url+="?on_conflict="+encodeURIComponent(opts.onConflict); return request(url,{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(row)}).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));}
-        }; return api;
-      },
-      upsert(row,opts={}){let url="/rest/v1/"+encodeURIComponent(name); if(opts.onConflict)url+="?on_conflict="+encodeURIComponent(opts.onConflict); return request(url,{method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=representation"},body:JSON.stringify(row)}).then(x=>({data:Array.isArray(x.data)?(x.data[0]||null):x.data,error:x.error}));}
-    };
-  }
-  const auth={
-    async getSession(){const s=readSession();return {data:{session:s},error:null};},
-    async getUser(){const s=readSession(); if(!s?.access_token)return {data:{user:null},error:null}; const r=await request("/auth/v1/user"); return {data:{user:r.data},error:r.error};},
-    async signInWithPassword({email,password}){const r=await request("/auth/v1/token?grant_type=password",{method:"POST",body:JSON.stringify({email,password})}); if(r.error)return {data:{},error:r.error}; writeSession(r.data); listeners.forEach(fn=>fn("SIGNED_IN",r.data)); return {data:r.data,error:null};},
-    async signUp({email,password}){const r=await request("/auth/v1/signup",{method:"POST",body:JSON.stringify({email,password})}); if(r.error)return {data:{},error:r.error}; if(r.data?.access_token)writeSession(r.data); return {data:r.data,error:null};},
-    async signOut(){writeSession(null);listeners.forEach(fn=>fn("SIGNED_OUT",null));return {error:null};},
-    onAuthStateChange(fn){listeners.push(fn);return {data:{subscription:{unsubscribe(){listeners=listeners.filter(x=>x!==fn)}}}}}
-  };
-  return {auth,from:table,rpc:async(name,args={})=>request("/rest/v1/rpc/"+encodeURIComponent(name),{method:"POST",body:JSON.stringify(args)})};
-}
-const supabaseClient=createSupabaseRestClient();
-function loadState(){
-  try{const raw=localStorage.getItem(STORAGE_KEY);return raw?Object.assign(cloneData(seed),JSON.parse(raw)):cloneData(seed)}catch{return cloneData(seed)}
-}
+function loadState(){ return structuredClone(seed); }
 
 async function saveState(){
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}catch(e){console.warn("Local save failed",e)}
   if(!supabaseReady) return;
   const {data:{user}} = await supabaseClient.auth.getUser();
   if(!user) return;
@@ -183,9 +136,9 @@ async function loadCloudState(user){
   const {data,error}=await supabaseClient.from("app_data").select("data").eq("user_id",user.id).maybeSingle();
   if(error){ console.error(error); showToast("Could not load your cloud data."); return; }
   if(data?.data){
-    state=Object.assign(cloneData(seed),data.data,{user:{id:user.id,email:user.email}});
+    state=Object.assign(structuredClone(seed),data.data,{user:{id:user.id,email:user.email}});
   }else{
-    state=cloneData(seed);
+    state=structuredClone(seed);
     state.user={id:user.id,email:user.email};
     await saveState();
   }
@@ -207,13 +160,13 @@ async function bootstrapSupabase(){
     await loadCloudState(session.user);
     view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
   }else{
-    state=cloneData(seed);
+    state=structuredClone(seed);
     state.user=null;
     view="login";
   }
   render();
   supabaseClient.auth.onAuthStateChange(async(event,session)=>{
-    if(event==="SIGNED_OUT"){ state=cloneData(seed);state.user=null;view="login";render();return; }
+    if(event==="SIGNED_OUT"){ state=structuredClone(seed);state.user=null;view="login";render();return; }
     if(event==="SIGNED_IN" && session?.user){
       await loadCloudState(session.user);
       view=state.business?.name && state.business.name!==seed.business.name ? "dashboard" : "setup";
@@ -308,7 +261,7 @@ function toast(msg){document.body.insertAdjacentHTML("beforeend",`<div class="to
 function setView(v){view=v; render(); window.scrollTo({top:0,behavior:"smooth"});}
 function navButton(v,label,icon){return `<button class="${view===v?'active':''}" onclick="setView('${v}')">${icon} ${label}</button>`}
 
-function shell(content,title="QuickQuote Auto"){
+function shell(content,title="QuickQuote Pro"){
   return `<div class="shell">
     <aside class="sidebar" aria-label="Primary navigation">
       <div class="brand">Quick<span>Quote</span> Pro</div>
@@ -370,41 +323,12 @@ function authScreen(mode){
       <label class="required">Password<input id="authPass" type="password" autocomplete="current-password" required></label>`}
       <button class="btn primary" type="submit">${signup?"Create Account":"Log In"}</button>
     </form>
-    <div style="margin-top:14px;text-align:center">
-      <button class="btn" type="button" onclick="testSupabaseConnection()">Test Supabase Connection</button>
-      <div id="connectionResult" class="help" style="margin-top:9px"></div>
-    </div>
     <div style="margin-top:18px;text-align:center;font-size:13px;color:var(--muted)">
       ${signup?`Already have an account? <button class="btn ghost" onclick="setView('login')">Log in</button>`:
       `Don't have an account? <button class="btn ghost" onclick="setView('signup')">Create account</button>`}
     </div>
   </section></main>`;
 }
-async function testSupabaseConnection(){
-  const el=document.getElementById("connectionResult");
-  if(el) el.textContent="Testing Supabase connection…";
-  try{
-    const started=Date.now();
-    const response=await fetch(SUPABASE_URL+"/auth/v1/settings",{method:"GET",headers:{apikey:SUPABASE_ANON_KEY},cache:"no-store"});
-    const body=await response.text();
-    const elapsed=Date.now()-started;
-    if(response.ok){
-      if(el) el.innerHTML="<strong style=\"color:var(--success)\">Connection successful.</strong> Supabase responded in "+elapsed+" ms.";
-      showToast("Supabase connection successful.");
-    }else{
-      const detail=body||("HTTP "+response.status);
-      if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Connection failed.</strong> HTTP "+response.status+": "+escapeHtml(detail);
-      showToast("Connection failed: HTTP "+response.status);
-    }
-  }catch(err){
-    const detail=err?.message||String(err);
-    if(el) el.innerHTML="<strong style=\"color:var(--danger)\">Connection failed.</strong> "+escapeHtml(detail)+"<br>Page origin: "+escapeHtml(location.origin);
-    showToast("Connection test failed: "+detail);
-  }
-}
-
-function escapeHtml(value){return String(value).split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;").split(String.fromCharCode(34)).join("&quot;").split(String.fromCharCode(39)).join("&#39;");}
-
 async function handleAuth(ev,mode){
   ev.preventDefault();
   const email=document.getElementById("authEmail").value.trim();
@@ -417,7 +341,7 @@ async function handleAuth(ev,mode){
     const {data,error}=await supabaseClient.auth.signUp({email,password:pass});
     if(error){showToast(error.message);return;}
     if(data.session){
-      state=cloneData(seed);state.user={email};await saveState();setView("setup");
+      state=structuredClone(seed);state.user={email};await saveState();setView("setup");
       showToast("Account created. Let's set up your business.");
     }else{
       setView("login");
@@ -446,7 +370,6 @@ function setup(){
         <label>Website<input id="bizWebsite" value="${esc(state.business.website)}"></label>
         <label>Business address<input id="bizAddress" value="${esc(state.business.address)}"></label>
         <label>License number<input id="bizLicense" value="${esc(state.business.license)}"></label>
-        <label>Payment link (optional)<input id="bizPaymentLink" type="url" placeholder="https://..." value="${esc(state.business.paymentLink||"")}"></label>
       </div>
       <div class="grid grid-2">
         <label>Default tax rate (%)<input id="bizTax" type="number" min="0" step=".01" value="${state.business.taxRate}"></label>
@@ -463,7 +386,7 @@ function saveBusiness(ev){
   const b=state.business;
   b.name=document.getElementById("bizName").value.trim();b.phone=document.getElementById("bizPhone").value.trim();
   b.email=document.getElementById("bizEmail").value.trim();b.website=document.getElementById("bizWebsite").value.trim();
-  b.address=document.getElementById("bizAddress").value.trim();b.license=document.getElementById("bizLicense").value.trim();b.paymentLink=document.getElementById("bizPaymentLink")?.value.trim()||"";
+  b.address=document.getElementById("bizAddress").value.trim();b.license=document.getElementById("bizLicense").value.trim();
   b.taxRate=Number(document.getElementById("bizTax").value)||0;b.markup=Number(document.getElementById("bizMarkup").value)||0;
   saveState();setView("dashboard");showToast("Business profile saved.");
 }
@@ -474,10 +397,10 @@ function previewLogo(ev){
 }
 
 function dashboard(){
-  const now=new Date();const month=now.toISOString().slice(0,7);const es=state.estimates.filter(e=>(e.createdAt||"").startsWith(month));
+  const month="2026-09";const es=state.estimates.filter(e=>(e.createdAt||"").startsWith(month));
   const approved=es.filter(e=>e.status==="Approved");const value=es.reduce((s,e)=>s+calcEstimate(e).total,0);const won=approved.reduce((s,e)=>s+calcEstimate(e).total,0);
   const recent=[...state.estimates].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,5);
-  return `<div class="row"><div><h1>${now.getHours()<12?"Good morning":now.getHours()<18?"Good afternoon":"Good evening"}</h1><p class="sub">${esc(state.business.name)}</p></div><button class="btn primary" onclick="startEstimate()">+ New Estimate</button></div>
+  return `<div class="row"><div><h1>Good morning</h1><p class="sub">${esc(state.business.name)}</p></div><button class="btn primary" onclick="startEstimate()">+ New Estimate</button></div>
   <div class="grid grid-3" style="margin-bottom:18px">
     <div class="card stat"><div class="label">Estimates this month</div><div class="value">${es.length}</div></div>
     <div class="card stat"><div class="label">Approved</div><div class="value">${approved.length}</div></div>
@@ -512,11 +435,7 @@ function customerDetails(id){
   const c=getCustomer(id);if(!c)return `<div class="card">Customer not found.</div>`;
   const es=state.estimates.filter(e=>e.customerId===id);
   return `<div class="row"><div><button class="btn ghost" onclick="setView('customers')">← Customers</button><h1 style="margin-top:12px">${esc(customerName(c))}</h1><p class="sub">${esc(c.address||"No address")}</p></div><button class="btn primary" onclick="startEstimate('${c.id}')">+ New Estimate</button></div>
-  <div class="grid grid-2"><div class="card"><h2>Contact</h2><div class="stack"><div>${esc(c.phone||"No phone")}</div><div>${esc(c.email||"No email")}</div><div class="contact-actions">
-  ${c.phone?`<a class="btn mini" href="tel:${esc(c.phone)}">Call</a><a class="btn mini" href="sms:${esc(c.phone)}">Text</a>`:""}
-  ${c.email?`<a class="btn mini" href="mailto:${esc(c.email)}">Email</a>`:""}
-  <button class="btn mini" onclick="editCustomer('${c.id}')">Edit Customer</button>
-</div></div></div>
+  <div class="grid grid-2"><div class="card"><h2>Contact</h2><div class="stack"><div>${esc(c.phone||"No phone")}</div><div>${esc(c.email||"No email")}</div><button class="btn" onclick="editCustomer('${c.id}')">Edit Customer</button></div></div>
   <div class="card"><h2>Estimates</h2>${es.length?`<div class="list">${es.map(estimateRow).join("")}</div>`:`<div class="empty">No estimates for this customer yet.</div>`}</div></div>`;
 }
 function editCustomer(id){
@@ -567,7 +486,7 @@ function selectDraftCustomer(id){draft.customerId=id;draft.address=getCustomer(i
 function addCustomerToDraft(){addCustomer();if(selectedCustomerId){draft.customerId=selectedCustomerId;draft.address=getCustomer(selectedCustomerId)?.address||"";setView("wizard");currentWizardStep=1;render();}}
 function wizardJob(){
   return `<div class="card"><h2>Job Information</h2><div class="field">
-  <label class="required">Estimate title<input id="wTitle" value="${esc(draft.title)}" placeholder="e.g. Brake Pad & Rotor Service" required></label>
+  <label class="required">Estimate title<input id="wTitle" value="${esc(draft.title)}" placeholder="e.g. Water Heater Replacement" required></label>
   <label>Job address<input id="wAddress" value="${esc(draft.address)}"></label>
   <label>Description<textarea id="wDescription" placeholder="Describe the work to be performed">${esc(draft.description)}</textarea></label>
   <label>Estimate valid until<input id="wExpiration" type="date" value="${draft.expiration}"></label>
@@ -618,7 +537,7 @@ function nextWizard(){if(currentWizardStep===1&&!draft.customerId){showToast("Se
 function prevWizard(){currentWizardStep=Math.max(1,currentWizardStep-1);render();}
 function cancelWizard(){if(confirm("Cancel this estimate? Unsaved changes will be lost.")){draft=null;setView("dashboard");}}
 function generateEstimate(){
-  draft.createdAt=new Date().toISOString();state.estimates.unshift(cloneData(draft));state.nextNumber++;saveState();selectedEstimateId=draft.id;draft=null;setView("estimate");showToast("Estimate created.");
+  draft.createdAt=new Date().toISOString();state.estimates.unshift(structuredClone(draft));state.nextNumber++;saveState();selectedEstimateId=draft.id;draft=null;setView("estimate");showToast("Estimate created.");
 }
 
 function openEstimate(id){selectedEstimateId=id;setView("estimate");}
@@ -627,8 +546,7 @@ function estimateDetails(id){
   return `<div class="row"><div><button class="btn ghost" onclick="setView('estimates')">← Estimates</button><h1 style="margin-top:12px">${esc(e.number)}</h1><p class="sub">${esc(customerName(c))} · ${esc(e.title)}</p></div><span class="badge ${statusClass(e.status)}">${esc(e.status)}</span></div>
   <div class="grid grid-2"><div class="card"><h2>${esc(e.title)}</h2><p>${esc(e.description||"No description provided.")}</p><hr class="divider">${e.items.map(i=>`<div class="row" style="margin:9px 0"><span>${esc(i.description)} × ${i.qty}</span><strong>${money(calcItem(i))}</strong></div>`).join("")}</div>
   <div class="card"><h2>Total</h2><div class="estimate-total">${money(t.total)}</div><hr class="divider"><div class="row"><span>Subtotal</span><strong>${money(t.subtotal)}</strong></div><div class="row"><span>Tax</span><strong>${money(t.tax)}</strong></div><div class="actions" style="margin-top:20px">
-  <button class="btn" onclick="openPreview('${e.id}')">Preview</button><button class="btn" onclick="downloadEstimate('${e.id}')">Save / Print PDF</button><button class="btn primary" onclick="sendEstimate('${e.id}')">Copy Customer Link</button>${c?.email?`<button class="btn" onclick="sendCustomerEmail('${e.id}')">Email</button>`:""}${c?.phone?`<button class="btn" onclick="sendCustomerSms('${e.id}')">Text</button>`:""}${state.business.paymentLink?`<button class="btn" onclick="openPayment('${e.id}')">Payment</button>`:""}</div>
-  <div class="actions" style="margin-top:10px">
+  <button class="btn" onclick="openPreview('${e.id}')">Preview</button><button class="btn" onclick="downloadEstimate('${e.id}')">Download PDF</button><button class="btn primary" onclick="sendEstimate('${e.id}')">Send to Customer</button></div>
   <div class="actions" style="margin-top:10px"><button class="btn" onclick="editEstimate('${e.id}')">Edit</button><button class="btn" onclick="openPublic('${e.id}')">Open Customer View</button><button class="btn danger" onclick="deleteEstimate('${e.id}')">Delete</button></div></div></div>`;
 }
 function openPreview(id){selectedEstimateId=id;setView("preview");}
@@ -639,10 +557,9 @@ function preview(id){
 }
 async function sendEstimate(id){
   const e=getEstimate(id);if(!e)return;
-  const previousStatus=e.status;
-  const token=await publishEstimate(id);
-  if(!token){e.status=previousStatus;return;}
   e.status="Sent";
+  const token=await publishEstimate(id);
+  if(!token)return;
   await saveState();
   const link=location.origin+location.pathname+"?estimate="+encodeURIComponent(token);
   try{await navigator.clipboard.writeText(link);showToast("Customer link copied.");}
@@ -682,9 +599,8 @@ function publicEstimate(id){
   const canAct=!["Approved","Declined","Expired"].includes(status);
   return `<main class="public" aria-label="Customer estimate">
     <div class="card">
-      <div class="actions" style="justify-content:flex-end"><button class="btn mini" onclick="window.print()">Print / Save PDF</button></div>
       <div class="row">
-        <div>${b.logo?`<img src="${esc(b.logo)}" alt="${esc(b.name||"Business")} logo" style="max-width:130px;max-height:70px">`:`<strong style="font-size:22px">${esc(b.name||"QuickQuote Auto")}</strong>`}</div>
+        <div>${b.logo?`<img src="${esc(b.logo)}" alt="${esc(b.name||"Business")} logo" style="max-width:130px;max-height:70px">`:`<strong style="font-size:22px">${esc(b.name||"QuickQuote Pro")}</strong>`}</div>
         <span class="badge ${statusClass(status)}">${esc(status)}</span>
       </div>
       <hr class="divider">
@@ -703,7 +619,7 @@ function publicEstimate(id){
       <div class="notice" style="margin-top:22px">${esc(e.description||"Please review the estimate details above.")}</div>
       ${e.expiration?`<p class="help" style="margin-top:12px">Estimate valid through ${esc(e.expiration)}.</p>`:""}
       ${canAct
-        ? `<div class="actions" style="margin-top:22px"><button class="btn primary" onclick="approveEstimatePublic('${esc(publicToken)}')">Approve Estimate</button><button class="btn" onclick="declinePublicEstimate('${esc(publicToken)}')">Decline</button>${b.paymentLink?`<a class="btn" href="${esc(b.paymentLink)}" target="_blank" rel="noopener">Pay Online</a>`:""}</div>`
+        ? `<div class="actions" style="margin-top:22px"><button class="btn primary" onclick="approveEstimatePublic('${esc(publicToken)}')">Approve Estimate</button><button class="btn" onclick="declinePublicEstimate('${esc(publicToken)}')">Decline</button></div>`
         : `<div class="notice" style="margin-top:22px">This estimate has been ${esc(status.toLowerCase())}. No further action is required.</div>`}
       <p class="help" style="margin-top:18px">Questions? Call ${esc(b.phone||"")} or email ${esc(b.email||"")}.</p>
     </div>
@@ -732,37 +648,15 @@ function approveEstimate(id){
   })();
 }
 function editEstimate(id){
-  const e=getEstimate(id);draft=cloneData(e);selectedEstimateId=id;currentWizardStep=2;setView("wizard");
+  const e=getEstimate(id);draft=structuredClone(e);selectedEstimateId=id;currentWizardStep=2;setView("wizard");
 }
 function deleteEstimate(id){
   if(!confirm("Delete this estimate? This cannot be undone."))return;
   state.estimates=state.estimates.filter(e=>e.id!==id);saveState();setView("estimates");showToast("Estimate deleted.");
 }
-async function ensureCustomerLink(id){
-  const e=getEstimate(id); if(!e) return null;
-  const token=await publishEstimate(id); if(!token) return null;
-  e.status=e.status==="Draft"?"Sent":e.status; await saveState();
-  return location.origin+location.pathname+"?estimate="+encodeURIComponent(token);
-}
-async function sendCustomerEmail(id){
-  const e=getEstimate(id),c=getCustomer(e?.customerId); if(!c?.email){showToast("Customer email is missing.");return}
-  const link=await ensureCustomerLink(id); if(!link)return;
-  location.href=`mailto:${encodeURIComponent(c.email)}?subject=${encodeURIComponent("Estimate "+e.number)}&body=${encodeURIComponent("Hello "+customerName(c)+",\n\nYour estimate is ready: "+link+"\n\nThank you.")}`;
-}
-async function sendCustomerSms(id){
-  const e=getEstimate(id),c=getCustomer(e?.customerId); if(!c?.phone){showToast("Customer phone is missing.");return}
-  const link=await ensureCustomerLink(id); if(!link)return;
-  location.href=`sms:${encodeURIComponent(c.phone)}?body=${encodeURIComponent("Your estimate "+e.number+" is ready: "+link)}`;
-}
-function openPayment(id){
-  if(!state.business.paymentLink){showToast("Add a payment link in Settings first.");return}
-  const e=getEstimate(id);const c=getCustomer(e?.customerId);
-  const url=new URL(state.business.paymentLink);url.searchParams.set("estimate",e.number);if(c)url.searchParams.set("customer",customerName(c));
-  window.open(url.toString(),"_blank","noopener");
-}
 function downloadEstimate(id){
   /*
-    BACKEND: Replace this prototype action with server-side PDF generation when you want a downloadable file generated automatically
+    BACKEND: Replace this prototype action with server-side PDF generation
     (e.g. a PDF service or your backend). The browser print dialog is used
     here so the user can Save as PDF without another dependency.
   */
@@ -791,7 +685,6 @@ function settings(){
       <label class="required">Business name<input id="setName" value="${esc(state.business.name)}" required></label>
       <label>Phone<input id="setPhone" value="${esc(state.business.phone)}"></label><label>Email<input id="setEmail" type="email" value="${esc(state.business.email)}"></label>
       <label>Address<input id="setAddress" value="${esc(state.business.address)}"></label><label>Website<input id="setWebsite" value="${esc(state.business.website)}"></label><label>License number<input id="setLicense" value="${esc(state.business.license)}"></label>
-      <label>Payment link (Stripe Payment Link or other checkout URL)<input id="setPaymentLink" type="url" placeholder="https://..." value="${esc(state.business.paymentLink||"")}"></label>
       <button class="btn primary">Save Changes</button></form></div>
     <div class="card"><h2>Estimate Settings</h2><form class="field" onsubmit="saveEstimateSettings(event)">
       <label>Estimate prefix<input id="setPrefix" value="${esc(state.settings.prefix)}" required></label><label>Next estimate number<input id="setNumber" type="number" min="1" value="${state.nextNumber}" required></label>
@@ -802,39 +695,18 @@ function settings(){
     <div class="card"><h2>Account</h2><p class="help">${esc(state.user?.email||"")}</p><button class="btn danger" onclick="resetDemo()">Reset Demo Data</button></div>
   </div></div>`;
 }
-function saveSettingsBusiness(ev){ev.preventDefault();Object.assign(state.business,{name:document.getElementById("setName").value.trim(),phone:document.getElementById("setPhone").value.trim(),email:document.getElementById("setEmail").value.trim(),address:document.getElementById("setAddress").value.trim(),website:document.getElementById("setWebsite").value.trim(),license:document.getElementById("setLicense").value.trim(),paymentLink:document.getElementById("setPaymentLink")?.value.trim()||""});saveState();render();showToast("Business profile saved.");}
+function saveSettingsBusiness(ev){ev.preventDefault();Object.assign(state.business,{name:document.getElementById("setName").value.trim(),phone:document.getElementById("setPhone").value.trim(),email:document.getElementById("setEmail").value.trim(),address:document.getElementById("setAddress").value.trim(),website:document.getElementById("setWebsite").value.trim(),license:document.getElementById("setLicense").value.trim()});saveState();render();showToast("Business profile saved.");}
 function saveEstimateSettings(ev){ev.preventDefault();state.settings.prefix=document.getElementById("setPrefix").value.trim()||"EST";state.nextNumber=Number(document.getElementById("setNumber").value)||1000;state.settings.defaultExpiration=Number(document.getElementById("setExpiration").value)||14;state.business.taxRate=Number(document.getElementById("setTax").value)||0;state.business.markup=Number(document.getElementById("setMarkup").value)||0;saveState();render();showToast("Estimate settings saved.");}
 function saveTerms(ev){ev.preventDefault();state.business.terms=document.getElementById("setTerms").value;saveState();render();showToast("Terms saved.");}
-async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=cloneData(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
+async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=structuredClone(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
 
 const originalRender=render;
 function patchedRender(){
   if(view==="setup"){document.getElementById("app").innerHTML=setup();return;}
   originalRender();
 }
-window.addEventListener("unhandledrejection", (event) => { console.error("Unhandled QuickQuote promise rejection:", event.reason); });
 render=patchedRender;
-
-// Keep the Android app from ever showing a blank screen if startup hits an unexpected error.
-window.onerror = function(message, source, lineno, colno, error){
-  console.error("QuickQuote startup error:", message, source, lineno, colno, error);
-  const app=document.getElementById("app");
-  if(app) app.innerHTML='<main class="auth"><section class="auth-card"><div class="auth-brand">QUICKQUOTE <span>AUTO</span></div><h2>QuickQuote Auto</h2><p class="error">The app hit a startup error. Please close and reopen it.</p><p class="help">Error: '+esc(String(message||"Unknown error"))+'</p></section></main>';
-  return true;
-};
-
-bootstrapSupabase().catch(function(error){
-  console.error("QuickQuote bootstrap error:", error);
-  try{
-    state=cloneData(seed);
-    state.user=null;
-    view="login";
-    render();
-  }catch(renderError){
-    const app=document.getElementById("app");
-    if(app) app.innerHTML='<main class="auth"><section class="auth-card"><div class="auth-brand">QUICKQUOTE <span>AUTO</span></div><h2>QuickQuote Auto</h2><p class="error">Startup failed. Please close and reopen the app.</p></section></main>';
-  }
-});
+bootstrapSupabase();
 </script>
 </body>
 </html>
