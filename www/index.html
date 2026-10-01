@@ -699,7 +699,7 @@ function buildEstimatePdf(e,c,t,b){
   if(b.terms){
     lines.push("");
     lines.push("TERMS");
-    for(const part of String(b.terms).split(/\\r?\\n/))for(const w of pdfWrap(part))lines.push(w);
+    for(const part of String(b.terms).split(/\\r?\n/))for(const w of pdfWrap(part))lines.push(w);
   }
   const pages=[];
   const perPage=48;
@@ -718,18 +718,18 @@ function buildEstimatePdf(e,c,t,b){
     content.push("ET");
     const stream=content.join("\n");
     const contentId=objs.length;
-    objs.push("<< /Length "+stream.length+" >>\\nstream\\n"+stream+"\\nendstream");
+    objs.push("<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream");
     const pageId=objs.length;
     objs.push("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents "+contentId+" 0 R >>");
     kids.push(pageId);
   }
   objs[2]="<< /Type /Pages /Kids ["+kids.map(id=>id+" 0 R").join(" ")+"] /Count "+kids.length+" >>";
-  let pdf="%PDF-1.4\\n%1234\\n",offsets=[0];
-  for(let i=1;i<objs.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\\n"+objs[i]+"\\nendobj\\n";}
+  let pdf="%PDF-1.4\n%1234\n",offsets=[0];
+  for(let i=1;i<objs.length;i++){offsets[i]=pdf.length;pdf+=i+" 0 obj\n"+objs[i]+"\nendobj\n";}
   const xref=pdf.length;
-  pdf+="xref\\n0 "+objs.length+"\\n0000000000 65535 f \\n";
-  for(let i=1;i<objs.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \\n";
-  pdf+="trailer\\n<< /Size "+objs.length+" /Root 1 0 R >>\\nstartxref\\n"+xref+"\\n%%EOF";
+  pdf+="xref\n0 "+objs.length+"\n0000000000 65535 f \n";
+  for(let i=1;i<objs.length;i++)pdf+=String(offsets[i]).padStart(10,"0")+" 00000 n \n";
+  pdf+="trailer\n<< /Size "+objs.length+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
   return new TextEncoder().encode(pdf);
 }
 function bytesToBase64(bytes){
