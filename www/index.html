@@ -21,7 +21,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#cbd5e1;text-align:left;padding:12px;border-radius:10px;font-weight:600}.nav button:hover,.nav button.active{background:#26334a;color:white}
 .sidebar-bottom{position:absolute;bottom:18px;left:14px;right:14px}.logout{width:100%;border:0;background:#1f2937;color:#cbd5e1;padding:11px;border-radius:10px}
 .main{margin-left:var(--sidebar);width:calc(100% - var(--sidebar));min-width:0}.topbar{height:66px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:10}
-.mobile-brand{display:none;font-weight:800}.mobile-menu{display:none}.content{padding:28px;max-width:1240px;margin:auto}
+.mobile-brand{display:none;font-weight:800}.mobile-menu{display:none}.mobile-drawer-backdrop{display:none}.mobile-drawer{display:none}.content{padding:28px;max-width:1240px;margin:auto}
 h1{font-size:30px;line-height:1.15;margin:0 0 6px;letter-spacing:-.7px}h2{font-size:20px;margin:0 0 14px}h3{font-size:16px;margin:0 0 10px}.sub{color:var(--muted);margin:0 0 24px}.grid{display:grid;gap:18px}.grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}.grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}.stat{padding:18px}.stat .label{color:var(--muted);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}.stat .value{font-size:26px;font-weight:800;margin-top:7px}.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.stack{display:grid;gap:12px}.actions{display:flex;flex-wrap:wrap;gap:10px}.btn{border:1px solid var(--border);background:white;color:var(--text);padding:10px 14px;border-radius:10px;font-weight:700}.btn:hover{background:var(--surface2)}.btn.primary{background:var(--primary);border-color:var(--primary);color:white}.btn.primary:hover{background:var(--primary-dark)}.btn.danger{color:white;background:var(--danger);border-color:var(--danger)}.btn.ghost{border-color:transparent;background:transparent}.btn:disabled{opacity:.55;cursor:not-allowed}
 .badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;font-size:12px;font-weight:800}.badge.draft{background:#eef1f5;color:#596273}.badge.sent{background:#eaf0ff;color:#2457e6}.badge.viewed{background:#eeeafd;color:#6246c7}.badge.approved{background:#e7f7ef;color:var(--success)}.badge.declined,.badge.expired{background:#fdecec;color:var(--danger)}
 .list{display:grid;gap:10px}.list-item{border:1px solid var(--border);border-radius:12px;padding:15px;background:white;display:flex;justify-content:space-between;gap:15px;align-items:center}.list-item.clickable{cursor:pointer}.list-item.clickable:hover{border-color:#aeb9ce}
@@ -38,7 +38,16 @@ label{display:grid;gap:6px;font-weight:700;font-size:13px}.field{display:grid;ga
 .logo-preview{width:72px;height:72px;border-radius:12px;border:1px dashed var(--border);display:grid;place-items:center;overflow:hidden;background:var(--surface2)}.logo-preview img{width:100%;height:100%;object-fit:cover}
 .notice{padding:12px 14px;border-radius:10px;background:#eef5ff;color:#244a9b;font-size:13px}.danger-box{padding:12px 14px;border-radius:10px;background:#fff0f0;color:#9d2929;font-size:13px}
 .mobile-bottom{display:none}
-@media(max-width:900px){.sidebar{display:none}.main{margin-left:0;width:100%}.mobile-menu{display:inline-flex}.mobile-brand{display:block}.topbar{padding:0 16px}.content{padding:20px 16px}.grid-3{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.mobile-bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);z-index:30;padding:6px;justify-content:space-around}.mobile-bottom button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:800;padding:8px}.mobile-bottom button.active{color:var(--primary)}.content{padding-bottom:88px}}
+@media(max-width:900px){
+.mobile-drawer-backdrop{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;opacity:0;pointer-events:none;transition:opacity .2s}
+.mobile-drawer-backdrop.open{opacity:1;pointer-events:auto}
+.mobile-drawer{display:flex;position:fixed;top:0;left:0;bottom:0;width:min(82vw,330px);background:var(--surface);z-index:100;transform:translateX(-105%);transition:transform .22s ease;box-shadow:0 8px 30px rgba(0,0,0,.25);padding:18px;flex-direction:column;gap:8px}
+.mobile-drawer.open{transform:translateX(0)}
+.mobile-drawer-head{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:6px;font-size:18px}
+.mobile-drawer>button{border:0;background:transparent;text-align:left;padding:14px 12px;border-radius:10px;font-size:15px;font-weight:800;color:var(--text)}
+.mobile-drawer>button:active,.mobile-drawer>button:hover{background:var(--soft)}
+.mobile-drawer .drawer-logout{margin-top:auto;background:#1f2937;color:#fff;text-align:center}
+.sidebar{display:none}.main{margin-left:0;width:100%}.mobile-menu{display:inline-flex}.mobile-brand{display:block}.topbar{padding:0 16px}.content{padding:20px 16px}.grid-3{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.mobile-bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);z-index:30;padding:6px;justify-content:space-around}.mobile-bottom button{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:800;padding:8px}.mobile-bottom button.active{color:var(--primary)}.content{padding-bottom:88px}}
 @media(max-width:620px){h1{font-size:25px}.grid-2{grid-template-columns:1fr}.kpi{grid-template-columns:1fr 1fr}.card{padding:16px}.actions .btn{flex:1;min-width:130px}.list-item{align-items:flex-start}.estimate-total{font-size:28px}.table-wrap{overflow:auto}.topbar{height:58px}}
 @media(max-width:420px){.kpi{grid-template-columns:1fr}.actions .btn{width:100%;flex:none}}
 </style>
@@ -258,6 +267,12 @@ function calcEstimate(e){
 function statusClass(s){return String(s).toLowerCase();}
 function showToast(msg){clearTimeout(toastTimer);toast(msg);toastTimer=setTimeout(()=>{const x=document.querySelector(".toast");if(x)x.remove()},3200)}
 function toast(msg){document.body.insertAdjacentHTML("beforeend",`<div class="toast" role="status">${esc(msg)}</div>`)}
+function toggleMobileMenu(){
+  const drawer=document.getElementById("mobileDrawer"),back=document.getElementById("mobileDrawerBackdrop");
+  if(!drawer||!back)return;
+  const open=drawer.classList.toggle("open"); back.classList.toggle("open",open);
+}
+function mobileNav(v){toggleMobileMenu();setView(v);}
 function setView(v){view=v; render(); window.scrollTo({top:0,behavior:"smooth"});}
 function navButton(v,label,icon){return `<button class="${view===v?'active':''}" onclick="setView('${v}')">${icon} ${label}</button>`}
 
@@ -276,12 +291,22 @@ function shell(content,title="QuickQuote Pro"){
     </aside>
     <main class="main">
       <header class="topbar">
-        <button class="btn ghost mobile-menu" onclick="setView('dashboard')" aria-label="Go to home">☰</button>
+        <button class="btn ghost mobile-menu" onclick="toggleMobileMenu()" aria-label="Open menu">☰</button>
         <div class="mobile-brand">Quick<span style="color:var(--primary)">Quote</span></div>
         <div></div>
         <button class="btn primary" onclick="startEstimate()">+ New Estimate</button>
       </header>
       <div class="content">${content}</div>
+      <div id="mobileDrawerBackdrop" class="mobile-drawer-backdrop" onclick="toggleMobileMenu()"></div>
+      <aside id="mobileDrawer" class="mobile-drawer" aria-label="Mobile menu">
+        <div class="mobile-drawer-head"><strong>QuickQuote Pro</strong><button class="btn ghost" onclick="toggleMobileMenu()" aria-label="Close menu">✕</button></div>
+        <button onclick="mobileNav('dashboard')">⌂ Home</button>
+        <button onclick="mobileNav('estimates')">▤ Estimates</button>
+        <button onclick="mobileNav('customers')">♙ Customers</button>
+        <button onclick="mobileNav('services')">◆ Services</button>
+        <button onclick="mobileNav('settings')">⚙ Settings</button>
+        <button class="drawer-logout" onclick="toggleMobileMenu();logout()">Log out</button>
+      </aside>
       <nav class="mobile-bottom" aria-label="Mobile navigation">
         ${navButton("dashboard","Home","⌂")}${navButton("estimates","Estimates","▤")}${navButton("customers","Customers","♙")}${navButton("services","Services","◆")}${navButton("settings","More","⋯")}
       </nav>
