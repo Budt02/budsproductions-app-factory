@@ -53,15 +53,34 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
+      - name: Install Android 16 SDK
+        run: |
+          yes | \${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null || true
+          \${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set Play target API 36
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("android/variables.gradle")
+          s = p.read_text()
+          import re
+          s = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36', s)
+          s = re.sub(r'targetSdkVersion\s*=\s*\d+', 'targetSdkVersion = 36', s)
+          p.write_text(s)
+          PY
+
       - name: Sync Capacitor
         run: npx cap sync android
 
-      - name: Build debug APK
+      - name: Build debug APK and AAB
         working-directory: android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug bundleDebug
 
-      - name: Upload APK
+      - name: Upload APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: quickquote-auto-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: quickquote-auto-android-debug
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/bundle/debug/app-debug.aab
