@@ -1,5 +1,6 @@
 name: Build QuickQuote Auto
 # Rebuild after WebView Supabase fix
+# Fresh Android APK/AAB rebuild requested 2026-10-02
 
 on:
   workflow_dispatch:
