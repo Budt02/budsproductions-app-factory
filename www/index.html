@@ -821,7 +821,7 @@ function settings(){
     <div class="card"><h2>Terms & Conditions</h2><form class="field" onsubmit="saveTerms(event)"><label>Default estimate terms<textarea id="setTerms">${esc(state.business.terms)}</textarea></label><button class="btn primary">Save Terms</button></form></div>
     <div class="card"><h2>Account</h2><p class="help">${esc(state.user?.email||"")}</p>
       <div class="danger-box" style="margin:12px 0">Deleting your account removes your QuickQuote cloud data. Your sign-in account is also submitted for deletion through the secure deletion request process.</div>
-      <div class="actions"><button class="btn" onclick="openAccountDeletionPage()">Account deletion page</button><button class="btn danger" onclick="requestAccountDeletion()">Delete my account</button><button class="btn" onclick="resetDemo()">Reset Demo Data</button></div>
+      <div class="actions"><button class="btn" onclick="openAccountDeletionPage()">Account deletion page</button><button class="btn" onclick="openPrivacyPolicy()">Privacy policy</button><button class="btn danger" onclick="requestAccountDeletion()">Delete my account</button><button class="btn" onclick="resetDemo()">Reset Demo Data</button></div>
     </div>
   </div></div>`;
 }
@@ -830,6 +830,9 @@ function saveEstimateSettings(ev){ev.preventDefault();state.settings.prefix=docu
 function saveTerms(ev){ev.preventDefault();state.business.terms=document.getElementById("setTerms").value;saveState();render();showToast("Terms saved.");}
 function openAccountDeletionPage(){
   window.open(ACCOUNT_DELETION_URL,"_blank","noopener,noreferrer");
+}
+function openPrivacyPolicy(){
+  window.open(location.origin+"/privacy-policy.html","_blank","noopener,noreferrer");
 }
 async function requestAccountDeletion(){
   const email=state.user?.email||"";
