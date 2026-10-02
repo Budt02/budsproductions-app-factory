@@ -123,6 +123,7 @@ let toastTimer = null;
 
 const SUPABASE_URL = "https://evkexulkxrvtisrhaohj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_C0jfubBEvzZAKRlfkegByA_uVQkwMTh";
+const ACCOUNT_DELETION_URL = "https://steady-sorbet-7330e1.netlify.app/account-deletion.html";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let supabaseReady = false;
 let saveTimer = null;
@@ -818,12 +819,38 @@ function settings(){
       <label>Default tax rate (%)<input id="setTax" type="number" min="0" step=".01" value="${state.business.taxRate}"></label><label>Default markup (%)<input id="setMarkup" type="number" min="0" step=".01" value="${state.business.markup}"></label>
       <button class="btn primary">Save Settings</button></form></div>
     <div class="card"><h2>Terms & Conditions</h2><form class="field" onsubmit="saveTerms(event)"><label>Default estimate terms<textarea id="setTerms">${esc(state.business.terms)}</textarea></label><button class="btn primary">Save Terms</button></form></div>
-    <div class="card"><h2>Account</h2><p class="help">${esc(state.user?.email||"")}</p><button class="btn danger" onclick="resetDemo()">Reset Demo Data</button></div>
+    <div class="card"><h2>Account</h2><p class="help">${esc(state.user?.email||"")}</p>
+      <div class="danger-box" style="margin:12px 0">Deleting your account removes your QuickQuote cloud data. Your sign-in account is also submitted for deletion through the secure deletion request process.</div>
+      <div class="actions"><button class="btn" onclick="openAccountDeletionPage()">Account deletion page</button><button class="btn danger" onclick="requestAccountDeletion()">Delete my account</button><button class="btn" onclick="resetDemo()">Reset Demo Data</button></div>
+    </div>
   </div></div>`;
 }
 function saveSettingsBusiness(ev){ev.preventDefault();Object.assign(state.business,{name:document.getElementById("setName").value.trim(),phone:document.getElementById("setPhone").value.trim(),email:document.getElementById("setEmail").value.trim(),address:document.getElementById("setAddress").value.trim(),website:document.getElementById("setWebsite").value.trim(),license:document.getElementById("setLicense").value.trim()});saveState();render();showToast("Business profile saved.");}
 function saveEstimateSettings(ev){ev.preventDefault();state.settings.prefix=document.getElementById("setPrefix").value.trim()||"EST";state.nextNumber=Number(document.getElementById("setNumber").value)||1000;state.settings.defaultExpiration=Number(document.getElementById("setExpiration").value)||14;state.business.taxRate=Number(document.getElementById("setTax").value)||0;state.business.markup=Number(document.getElementById("setMarkup").value)||0;saveState();render();showToast("Estimate settings saved.");}
 function saveTerms(ev){ev.preventDefault();state.business.terms=document.getElementById("setTerms").value;saveState();render();showToast("Terms saved.");}
+function openAccountDeletionPage(){
+  window.open(ACCOUNT_DELETION_URL,"_blank","noopener,noreferrer");
+}
+async function requestAccountDeletion(){
+  const email=state.user?.email||"";
+  if(!email){showToast("No signed-in account found.");return;}
+  if(!confirm("Delete your QuickQuote cloud data and start the account deletion request? This cannot be undone."))return;
+  try{
+    const {data:{user}}=await supabaseClient.auth.getUser();
+    if(!user){showToast("Please sign in again before deleting your account.");return;}
+    const {error}=await supabaseClient.from("app_data").delete().eq("user_id",user.id);
+    if(error)throw error;
+    state=structuredClone(seed);
+    state.user=null;
+    await supabaseClient.auth.signOut();
+    const subject=encodeURIComponent("QuickQuote Pro account deletion request");
+    const body=encodeURIComponent("Please permanently delete my QuickQuote Pro account and any remaining account-associated data.\n\nAccount email: "+email+"\nUser ID: "+user.id);
+    location.href="mailto:buddyteasdale@gmail.com?subject="+subject+"&body="+body;
+  }catch(err){
+    console.error("Account deletion failed",err);
+    showToast("Could not delete your stored app data. Please use the Account deletion page.");
+  }
+}
 async function resetDemo(){if(!confirm("Reset your QuickQuote data to the sample data?"))return;const {data:{user}}=await supabaseClient.auth.getUser();if(!user)return;state=structuredClone(seed);state.user={email:user.email};await saveState();setView("dashboard");showToast("Sample data restored.");}
 
 const originalRender=render;
