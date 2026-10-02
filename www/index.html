@@ -124,6 +124,7 @@ let toastTimer = null;
 const SUPABASE_URL = "https://evkexulkxrvtisrhaohj.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_C0jfubBEvzZAKRlfkegByA_uVQkwMTh";
 const ACCOUNT_DELETION_URL = "https://steady-sorbet-7330e1.netlify.app/account-deletion.html";
+const PRIVACY_POLICY_URL = "https://steady-sorbet-7330e1.netlify.app/privacy-policy.html";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let supabaseReady = false;
 let saveTimer = null;
@@ -832,7 +833,7 @@ function openAccountDeletionPage(){
   window.open(ACCOUNT_DELETION_URL,"_blank","noopener,noreferrer");
 }
 function openPrivacyPolicy(){
-  window.open(location.origin+"/privacy-policy.html","_blank","noopener,noreferrer");
+  window.open(PRIVACY_POLICY_URL,"_blank","noopener,noreferrer");
 }
 async function requestAccountDeletion(){
   const email=state.user?.email||"";
