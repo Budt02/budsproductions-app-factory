@@ -3,22 +3,25 @@ name: Deploy QuickQuote account deletion function
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: evkexulkxrvtisrhaohj
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
         with:
-          node-version: 22
+          persist-credentials: false
 
-      - name: Deploy Supabase Edge Function
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          npx supabase functions deploy delete-account \
-            --project-ref evkexulkxrvtisrhaohj \
-            --use-api
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy account deletion function
+        run: supabase functions deploy delete-account --project-ref "$PROJECT_ID" --use-api
