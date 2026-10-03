@@ -106,10 +106,12 @@ jobs:
                   1
               )
           if "signingConfig signingConfigs.release" not in s:
-              s = s.replace(
-                  "buildTypes {\n",
-                  "buildTypes {\n        release {\n            signingConfig signingConfigs.release\n",
-                  1
+              import re
+              s = re.sub(
+                  r'(buildTypes\s*\{\s*release\s*\{)',
+                  r'\1\n            signingConfig signingConfigs.release',
+                  s,
+                  count=1
               )
           p.write_text(s)
           PY
