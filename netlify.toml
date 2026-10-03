@@ -1,0 +1,12 @@
+[build]
+  publish = "www"
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy-policy.html"
+  status = 301
+
+[[redirects]]
+  from = "/delete-account"
+  to = "/account-deletion.html"
+  status = 301
